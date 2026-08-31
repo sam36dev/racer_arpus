@@ -1,15 +1,13 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
 import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
 
-// TODO: substituir pelo firebaseConfig do seu app Web
-// (Console Firebase > Configuracoes do projeto > Geral > Seus apps > </>).
 const firebaseConfig = {
-  apiKey: 'PLACEHOLDER',
-  authDomain: 'PLACEHOLDER.firebaseapp.com',
-  projectId: 'PLACEHOLDER',
-  storageBucket: 'PLACEHOLDER.appspot.com',
-  messagingSenderId: 'PLACEHOLDER',
-  appId: 'PLACEHOLDER',
+  apiKey: 'AIzaSyA5dyDpjUkZ18Ohu__O63VqfrD5_BpFeFA',
+  authDomain: 'racer-arp.firebaseapp.com',
+  projectId: 'racer-arp',
+  storageBucket: 'racer-arp.firebasestorage.app',
+  messagingSenderId: '531388421715',
+  appId: '1:531388421715:web:f62715f2a3a53f6a2b18a6',
 };
 
 const app = initializeApp(firebaseConfig);
