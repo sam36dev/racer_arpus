@@ -2,14 +2,13 @@
 
 // Valores de balanceamento do jogo. Ajustar aqui conforme o cartao fisico mudar.
 
-const FUEL_MAX = 30; // unidades abstratas de combustivel por tanque cheio
+const FUEL_MAX = 40; // unidades abstratas de combustivel por tanque cheio
 
 const FUEL_WARNING_ROLLS = 10; // a partir de quantas rolagens restantes mostrar aviso
 
 // ASSUNCAO: consumo de combustivel por rolagem escala proporcionalmente ao dado
-// (dado/6), o que reproduz exatamente os valores informados para d6/d8/d12
-// (30, ~22 e 15 rolagens por tanque) e extrapola para d4/d2, que o usuario
-// ainda nao balanceou. Ajustar se vier um numero oficial.
+// (dado/6). Com FUEL_MAX=40 isso da 40 rolagens por tanque no d6, 30 no d8 e
+// 20 no d12; ajustar se vier um numero oficial diferente pra d8/d12/d4/d2.
 function fuelConsumptionPerRoll(diceType) {
   return diceType / 6;
 }

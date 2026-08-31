@@ -1,7 +1,7 @@
 // Espelho em browser das formulas de src/constants.js + serializePlayer de src/gameLogic.js.
 // Precisa ficar em sincronia manual com o backend (sem bundler neste projeto).
 window.GameCalc = (function () {
-  const FUEL_MAX = 30;
+  const FUEL_MAX = 40;
   const FUEL_WARNING_ROLLS = 10;
   const TIRE_LEVEL_MAX = 10;
 
