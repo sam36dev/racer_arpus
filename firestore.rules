@@ -1,0 +1,20 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /games/{gameId} {
+      allow get: if true;   // ler um jogo especifico exige saber o codigo
+      allow list: if false; // ninguem consegue listar todos os jogos existentes
+      allow write: if false; // todas as escritas passam pelo backend (Admin SDK, ignora estas regras)
+
+      match /players/{playerId} {
+        allow read: if true;  // quem ja sabe o gameId pode ler os carros dele
+        allow write: if false;
+      }
+
+      match /fines/{fineId} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+  }
+}

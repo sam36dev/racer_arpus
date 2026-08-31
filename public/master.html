@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Painel do Mestre - Racer Arpus</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+<div class="container wide">
+  <h1>🏁 Painel do Mestre</h1>
+  <p class="subtitle" id="game-name">Carregando...</p>
+  <p>
+    Codigo da corrida (compartilhe com os jogadores):
+    <span class="game-code" id="game-code">------</span>
+    <span class="status-pill status-lobby" id="game-status">lobby</span>
+  </p>
+
+  <div class="card">
+    <h3>Adicionar jogador</h3>
+    <div class="btn-row">
+      <input type="text" id="new-player-name" placeholder="Nome do piloto" />
+      <button id="btn-add-player">Adicionar</button>
+    </div>
+  </div>
+
+  <div id="winner-banner" class="card" style="display:none; text-align:center; background:#0d3a2a;">
+    <h2 id="winner-text"></h2>
+  </div>
+
+  <div class="player-grid" id="player-grid"></div>
+</div>
+
+<script src="/js/game-calc.js"></script>
+<script type="module" src="/js/master.js"></script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Racer Arpus</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+<div class="container">
+  <h1>🏁 Racer Arpus</h1>
+  <p class="subtitle">Painel digital para a corrida de tabuleiro</p>
+
+  <div class="card">
+    <h3>Criar nova corrida (mestre)</h3>
+    <p class="small">O mestre tambem joga com seu proprio carro, alem de controlar o painel geral.</p>
+    <label for="game-name">Nome da corrida</label>
+    <input type="text" id="game-name" placeholder="Ex: Corrida de sabado" />
+    <label for="master-player-name">Seu nome (piloto)</label>
+    <input type="text" id="master-player-name" placeholder="Nome do mestre/piloto" />
+    <button class="full-width" id="btn-create">Criar e abrir painel do mestre</button>
+  </div>
+
+  <div class="card">
+    <h3>Entrar como jogador</h3>
+    <label for="join-code">Codigo da corrida</label>
+    <input type="text" id="join-code" placeholder="Codigo dado pelo mestre" />
+    <label for="player-name">Seu nome</label>
+    <input type="text" id="player-name" placeholder="Nome do piloto" />
+    <button class="full-width" id="btn-join">Entrar na corrida</button>
+    <p class="small mt-24" id="join-error"></p>
+  </div>
+</div>
+
+<script>
+const btnCreate = document.getElementById('btn-create');
+const btnJoin = document.getElementById('btn-join');
+
+btnCreate.addEventListener('click', async () => {
+  const name = document.getElementById('game-name').value || 'Corrida';
+  const masterName = document.getElementById('master-player-name').value.trim() || 'Mestre';
+
+  const res = await fetch('/api/games', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  const game = await res.json();
+
+  const playerRes = await fetch(`/api/games/${game.id}/players`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: masterName }),
+  });
+  const masterPlayer = await playerRes.json();
+  localStorage.setItem(`racer-my-player-${game.id}`, masterPlayer.id);
+
+  window.location.href = `/master.html?game=${game.id}`;
+});
+
+btnJoin.addEventListener('click', async () => {
+  const gameId = document.getElementById('join-code').value.trim();
+  const name = document.getElementById('player-name').value.trim();
+  const errorEl = document.getElementById('join-error');
+  errorEl.textContent = '';
+
+  if (!gameId || !name) {
+    errorEl.textContent = 'Preencha o codigo da corrida e seu nome.';
+    return;
+  }
+
+  const check = await fetch(`/api/games/${gameId}`);
+  if (!check.ok) {
+    errorEl.textContent = 'Codigo de corrida nao encontrado.';
+    return;
+  }
+
+  const res = await fetch(`/api/games/${gameId}/players`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  const player = await res.json();
+  window.location.href = `/player.html?game=${gameId}&player=${player.id}`;
+});
+</script>
+</body>
+</html>

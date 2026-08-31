@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Meu carro - Racer Arpus</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+<div class="container">
+  <div class="player-header">
+    <div class="color-dot" id="p-color"></div>
+    <h2 id="p-name">Carregando...</h2>
+  </div>
+  <p class="small" id="p-game-status"></p>
+
+  <div id="dice-result" class="dice-result" style="display:none;"></div>
+  <button id="btn-roll" class="dice-btn">🎲 Rolar dado</button>
+  <div id="roll-error" class="danger-banner" style="display:none;"></div>
+
+  <!-- 1. COMBUSTIVEL -->
+  <div class="card">
+    <div class="stat-row"><span class="stat-icon">⛽</span><h3>Combustivel</h3></div>
+    <div class="bar-label"><span>Nivel</span><span class="bar-value" id="fuel-percent">--%</span></div>
+    <div class="bar-track"><div class="bar-fill" id="fuel-bar" style="width:0%; background: var(--green);"></div></div>
+    <div id="fuel-warning" class="warning-banner" style="display:none;"></div>
+    <div id="fuel-empty" class="danger-banner" style="display:none;">SEM COMBUSTIVEL - va ao posto ou peça reabastecimento ao mestre!</div>
+    <button class="secondary full-width" id="btn-refuel">Abastecer +1</button>
+  </div>
+
+  <!-- 2. PNEU -->
+  <div class="card">
+    <div class="stat-row"><span class="stat-icon">🛞</span><h3>Pneu</h3></div>
+    <div class="bar-label"><span id="tire-label">--</span><span class="bar-value" id="tire-rolls">--</span></div>
+    <div class="bar-track"><div class="bar-fill" id="tire-bar" style="width:0%; background: var(--green);"></div></div>
+    <div id="tire-penalty" class="warning-banner" style="display:none;"></div>
+    <div id="tire-eliminated" class="danger-banner" style="display:none;">ELIMINADO - pneu chegou ao nivel 0. Voce nao pode mais rolar o dado nesta corrida.</div>
+    <button class="secondary full-width" id="btn-repair-tire">Reparar pneu (+1 nivel)</button>
+    <label for="tire-select">Trocar de marca (reseta nivel para 10)</label>
+    <select id="tire-select">
+      <option value="pirelli">Pirelli (a cada 20 rolagens)</option>
+      <option value="continental">Continental (a cada 25 rolagens)</option>
+      <option value="michelin">Michelin (a cada 30 rolagens)</option>
+    </select>
+    <button class="secondary full-width" id="btn-change-tire">Trocar marca do pneu</button>
+  </div>
+
+  <!-- 3. MULTAS -->
+  <div class="card">
+    <div class="stat-row"><span class="stat-icon">📋</span><h3>Multas</h3></div>
+    <p class="small">Aplicadas apenas pelo mestre. Total acumulado:</p>
+    <div class="bar-value" style="font-size:1.6rem;" id="fines-total">R$ 0</div>
+    <div class="fines-list" id="fines-list"></div>
+  </div>
+
+  <!-- 4. NIVEL DO CARRO / TURBO -->
+  <div class="card">
+    <div class="stat-row"><span class="stat-icon">🌀</span><h3>Nivel do carro</h3></div>
+    <p class="small">Posicao na trilha de turbo: <span id="turbo-position">0</span> (turbo daria <span id="turbo-dice-badge">d6</span>)</p>
+    <p>Dado que voce realmente rola agora: <span class="badge tag-dice" id="dice-badge">d6</span></p>
+    <div id="tire-override-note" class="small" style="display:none;">O pneu desgastado esta limitando seu dado, mesmo com o turbo mais alto.</div>
+  </div>
+
+  <!-- 5. VOLTAS -->
+  <div class="card">
+    <div class="stat-row"><span class="stat-icon">🏁</span><h3>Voltas</h3></div>
+    <div class="bar-value" style="font-size:1.6rem;"><span id="laps-current">0</span> / <span id="laps-total">10</span></div>
+    <button class="secondary full-width" id="btn-lap">Completei uma volta</button>
+  </div>
+</div>
+
+<script src="/js/game-calc.js"></script>
+<script type="module" src="/js/player.js"></script>
+</body>
+</html>
