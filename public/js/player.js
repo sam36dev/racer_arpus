@@ -26,6 +26,22 @@ import {
       return data;
     });
 
+  // Desabilita o botao e mostra "..." enquanto a requisicao esta em voo, pra
+  // dar feedback imediato mesmo quando o servidor demora (cold start na Vercel).
+  function busyClick(button, fn) {
+    button.addEventListener('click', async () => {
+      const original = button.textContent;
+      button.disabled = true;
+      button.textContent = '...';
+      try {
+        await fn();
+      } finally {
+        button.disabled = false;
+        button.textContent = original;
+      }
+    });
+  }
+
   const el = {
     color: document.getElementById('p-color'),
     name: document.getElementById('p-name'),
@@ -210,26 +226,24 @@ import {
     render();
   });
 
-  el.btnRoll.addEventListener('click', async () => {
+  busyClick(el.btnRoll, async () => {
     el.rollError.style.display = 'none';
     try {
-      const res = await api('roll');
-      el.diceResult.style.display = 'block';
-      el.diceResult.textContent = res.value;
+      await api('roll');
     } catch (err) {
       el.rollError.style.display = 'block';
       el.rollError.textContent = err.message;
     }
   });
 
-  el.btnRefuel.addEventListener('click', () => api('refuel').catch(() => {}));
+  busyClick(el.btnRefuel, () => api('refuel').catch(() => {}));
 
-  el.btnChangeTire.addEventListener('click', () => {
+  busyClick(el.btnChangeTire, () => {
     const brand = el.tireSelect.value;
-    api('change-tire-brand', { brand }).catch(() => {});
+    return api('change-tire-brand', { brand }).catch(() => {});
   });
 
-  el.btnRepairTire.addEventListener('click', () => api('repair-tire').catch(() => {}));
+  busyClick(el.btnRepairTire, () => api('repair-tire').catch(() => {}));
 
-  el.btnLap.addEventListener('click', () => api('complete-lap').catch(() => {}));
+  busyClick(el.btnLap, () => api('complete-lap').catch(() => {}));
 })();

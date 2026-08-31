@@ -27,6 +27,22 @@ import {
       return data;
     });
 
+  // Desabilita o botao e mostra "..." enquanto a requisicao esta em voo, pra
+  // dar feedback imediato mesmo quando o servidor demora (cold start na Vercel).
+  function busyClick(button, fn) {
+    button.addEventListener('click', async () => {
+      const original = button.textContent;
+      button.disabled = true;
+      button.textContent = '...';
+      try {
+        await fn();
+      } finally {
+        button.disabled = false;
+        button.textContent = original;
+      }
+    });
+  }
+
   const grid = document.getElementById('player-grid');
   const gameNameEl = document.getElementById('game-name');
   const gameCodeEl = document.getElementById('game-code');
@@ -121,7 +137,7 @@ import {
       }
     }
 
-    div.querySelector('.btn-roll').addEventListener('click', async () => {
+    busyClick(div.querySelector('.btn-roll'), async () => {
       const errorEl = div.querySelector('.roll-error-mini');
       errorEl.style.display = 'none';
       try {
@@ -132,32 +148,23 @@ import {
       }
     });
 
-    div.querySelector('.btn-refuel').addEventListener('click', () => {
-      api(player.id, 'refuel').catch(() => {});
-    });
-    div.querySelector('.btn-change-tire').addEventListener('click', () => {
+    busyClick(div.querySelector('.btn-refuel'), () => api(player.id, 'refuel').catch(() => {}));
+    busyClick(div.querySelector('.btn-change-tire'), () => {
       const brand = div.querySelector('.tire-select').value;
-      api(player.id, 'change-tire-brand', { brand }).catch(() => {});
+      return api(player.id, 'change-tire-brand', { brand }).catch(() => {});
     });
-    div.querySelector('.btn-repair-tire').addEventListener('click', () => {
-      api(player.id, 'repair-tire').catch(() => {});
-    });
-    div.querySelector('.btn-damage-tire').addEventListener('click', () => {
-      api(player.id, 'damage-tire').catch(() => {});
-    });
-    div.querySelector('.btn-apply-fine').addEventListener('click', () => {
+    busyClick(div.querySelector('.btn-repair-tire'), () => api(player.id, 'repair-tire').catch(() => {}));
+    busyClick(div.querySelector('.btn-damage-tire'), () => api(player.id, 'damage-tire').catch(() => {}));
+    busyClick(div.querySelector('.btn-apply-fine'), () => {
       const amount = div.querySelector('.fine-amount').value;
       const reason = div.querySelector('.fine-reason').value;
-      if (!amount || Number(amount) <= 0) return;
-      api(player.id, 'fine', { amount, reason }).catch(() => {});
+      if (!amount || Number(amount) <= 0) return Promise.resolve();
+      const p = api(player.id, 'fine', { amount, reason }).catch(() => {});
       div.querySelector('.fine-reason').value = '';
+      return p;
     });
-    div.querySelector('.btn-upgrade-turbo').addEventListener('click', () => {
-      api(player.id, 'upgrade-turbo').catch(() => {});
-    });
-    div.querySelector('.btn-lap').addEventListener('click', () => {
-      api(player.id, 'complete-lap').catch(() => {});
-    });
+    busyClick(div.querySelector('.btn-upgrade-turbo'), () => api(player.id, 'upgrade-turbo').catch(() => {}));
+    busyClick(div.querySelector('.btn-lap'), () => api(player.id, 'complete-lap').catch(() => {}));
 
     return div;
   }
