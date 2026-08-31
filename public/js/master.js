@@ -77,7 +77,10 @@ import {
       <div class="bar-label mt-24"><span>🛞 ${player.tire.label} — nivel ${player.tire.level}/${player.tire.levelMax}</span><span class="bar-value">${player.tire.rollsUntilNextLevel} p/ proximo</span></div>
       <div class="bar-track"><div class="bar-fill" style="width:${tirePercent}%; background:${barColor(tirePercent)};"></div></div>
       ${player.eliminated ? '<div class="danger-banner">ELIMINADO</div>' : player.tire.penaltyDice ? `<div class="warning-banner">Dado limitado a d${player.tire.penaltyDice} pelo pneu</div>` : ''}
-      <button class="secondary full-width btn-repair-tire">Reparar pneu (+1 nivel)</button>
+      <div class="btn-row">
+        <button class="secondary btn-repair-tire">Reparar (+1 nivel)</button>
+        <button class="danger btn-damage-tire">Penalizar (-1 nivel)</button>
+      </div>
       <div class="btn-row">
         <select class="tire-select">
           <option value="pirelli" ${player.tire.brand === 'pirelli' ? 'selected' : ''}>Pirelli (20)</option>
@@ -131,6 +134,9 @@ import {
     });
     div.querySelector('.btn-repair-tire').addEventListener('click', () => {
       api(player.id, 'repair-tire').catch(() => {});
+    });
+    div.querySelector('.btn-damage-tire').addEventListener('click', () => {
+      api(player.id, 'damage-tire').catch(() => {});
     });
     div.querySelector('.btn-apply-fine').addEventListener('click', () => {
       const amount = div.querySelector('.fine-amount').value;

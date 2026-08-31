@@ -174,6 +174,22 @@ async function repairTire(gameId, playerId) {
   return getPlayer(gameId, playerId);
 }
 
+// Penalidade manual do mestre (evento do tabuleiro, batida, etc): desce o nivel
+// do pneu em -1. Se chegar a 0, elimina o jogador da corrida igual ao desgaste normal.
+async function damageTire(gameId, playerId) {
+  const ref = playerRef(gameId, playerId);
+  await db.runTransaction(async (t) => {
+    const snap = await t.get(ref);
+    if (!snap.exists) throw new GameError('PLAYER_NOT_FOUND', 'Jogador nao encontrado');
+    const player = snap.data();
+    const newLevel = Math.max(0, player.tireLevel - 1);
+    const updates = { tireLevel: newLevel };
+    if (newLevel <= 0) updates.eliminated = true;
+    t.update(ref, updates);
+  });
+  return getPlayer(gameId, playerId);
+}
+
 // Troca de marca: pneu novo de fabrica - reseta nivel ao maximo e zera a contagem de rolagens.
 async function changeTireBrand(gameId, playerId, brand) {
   if (!TIRE_BRANDS[brand]) throw new GameError('INVALID_TIRE', 'Marca de pneu invalida');
@@ -342,6 +358,7 @@ module.exports = {
   rollDice,
   refuel,
   repairTire,
+  damageTire,
   changeTireBrand,
   upgradeTurbo,
   completeLap,
