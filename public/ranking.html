@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ranking - Racer Arpus</title>
+<link rel="stylesheet" href="/css/style.css" />
+<style>
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-size: 0.85rem; font-weight: 600; }
+  .pos { font-weight: 800; width: 2.5rem; }
+  .pos-1 { color: #ffd166; }
+  .pos-2 { color: #cfd8dc; }
+  .pos-3 { color: #d4915d; }
+</style>
+</head>
+<body>
+<div class="container">
+  <p><a href="/index.html">&larr; Voltar</a></p>
+  <h1>🏆 Ranking</h1>
+  <p class="subtitle">Quem mais venceu corridas por aqui</p>
+
+  <div class="card">
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr><th class="pos">#</th><th>Piloto</th><th>Vitorias</th><th>Corridas</th><th>Voltas</th></tr>
+        </thead>
+        <tbody id="ranking-body"></tbody>
+      </table>
+    </div>
+    <p class="small mt-24" id="empty-msg" style="display:none;">Ninguem tem conta ainda — crie a sua em "Entrar / Criar conta".</p>
+  </div>
+</div>
+
+<script src="/js/ranking.js"></script>
+</body>
+</html>

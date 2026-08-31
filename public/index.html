@@ -11,6 +11,21 @@
   <h1>🏁 Racer Arpus</h1>
   <p class="subtitle">Painel digital para a corrida de tabuleiro</p>
 
+  <div class="card" id="account-card">
+    <div id="account-logged-out">
+      <p class="small">Voce ainda nao esta logado — pode jogar mesmo assim, mas sem conta suas vitorias nao entram no ranking nem nas conquistas.</p>
+      <a href="/login.html"><button class="full-width">Entrar / Criar conta</button></a>
+    </div>
+    <div id="account-logged-in" style="display:none;">
+      <p>Logado como <strong id="account-username"></strong></p>
+      <div class="btn-row">
+        <a href="/ranking.html" style="flex:1"><button class="secondary full-width">🏆 Ranking</button></a>
+        <a href="/achievements.html" style="flex:1"><button class="secondary full-width">🎖️ Conquistas</button></a>
+        <button class="secondary" id="btn-logout">Sair</button>
+      </div>
+    </div>
+  </div>
+
   <div class="card">
     <h3>Criar nova corrida (mestre)</h3>
     <p class="small">O mestre tambem joga com seu proprio carro, alem de controlar o painel geral.</p>
@@ -33,6 +48,27 @@
 </div>
 
 <script>
+const token = localStorage.getItem('racer-token');
+const username = localStorage.getItem('racer-username');
+
+if (token && username) {
+  document.getElementById('account-logged-out').style.display = 'none';
+  document.getElementById('account-logged-in').style.display = 'block';
+  document.getElementById('account-username').textContent = username;
+  document.getElementById('master-player-name').value = username;
+  document.getElementById('player-name').value = username;
+}
+
+document.getElementById('btn-logout')?.addEventListener('click', () => {
+  localStorage.removeItem('racer-token');
+  localStorage.removeItem('racer-username');
+  window.location.reload();
+});
+
+function authHeaders() {
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 const btnCreate = document.getElementById('btn-create');
 const btnJoin = document.getElementById('btn-join');
 
@@ -49,7 +85,7 @@ btnCreate.addEventListener('click', async () => {
 
   const playerRes = await fetch(`/api/games/${game.id}/players`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ name: masterName }),
   });
   const masterPlayer = await playerRes.json();
@@ -77,7 +113,7 @@ btnJoin.addEventListener('click', async () => {
 
   const res = await fetch(`/api/games/${gameId}/players`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ name }),
   });
   const player = await res.json();

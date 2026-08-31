@@ -7,7 +7,7 @@ const express = require('express');
 const game = require('./src/gameLogic');
 const users = require('./src/users');
 const achievementsMod = require('./src/achievements');
-const { signToken, optionalAuth, requireAuth, requireAdmin } = require('./src/auth');
+const { signToken, optionalAuth, requireAuth, requireAdmin, isAdmin } = require('./src/auth');
 
 const app = express();
 
@@ -130,7 +130,7 @@ app.get(
   requireAuth,
   wrap(async (req) => {
     const user = await users.getUser(req.user.username);
-    return { username: user.username, displayName: user.displayName, isAdmin: require('./src/auth').isAdmin(user.username) };
+    return { username: user.username, displayName: user.displayName, isAdmin: isAdmin(user.username) };
   })
 );
 

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Conquistas - Racer Arpus</title>
+<link rel="stylesheet" href="/css/style.css" />
+<style>
+  .trophy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .trophy {
+    background: var(--bg-card-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 10px;
+    text-align: center;
+  }
+  .trophy.locked { opacity: 0.35; filter: grayscale(1); }
+  .trophy .icon { font-size: 2.2rem; display: block; margin-bottom: 6px; }
+  .trophy .name { font-weight: 700; font-size: 0.85rem; }
+  .trophy .desc { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="container wide">
+  <p><a href="/index.html">&larr; Voltar</a></p>
+  <h1>🎖️ Conquistas</h1>
+  <p class="subtitle" id="subtitle">Carregando...</p>
+
+  <div class="trophy-grid" id="trophy-grid"></div>
+
+  <div class="card mt-24" id="admin-panel" style="display:none;">
+    <h3>Painel do admin: conceder conquista manual</h3>
+    <label for="admin-username">Usuario que vai receber</label>
+    <input type="text" id="admin-username" placeholder="usuario" />
+    <label for="admin-achievement">Conquista</label>
+    <select id="admin-achievement"></select>
+    <button class="full-width" id="btn-grant">Conceder</button>
+    <p class="small" id="grant-result"></p>
+  </div>
+</div>
+
+<script src="/js/achievements.js"></script>
+</body>
+</html>

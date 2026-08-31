@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Entrar - Racer Arpus</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+<div class="container">
+  <h1>🏁 Racer Arpus</h1>
+  <p class="subtitle">Entre com seu usuario e senha (sem e-mail, só entre a galera mesmo)</p>
+
+  <div class="card">
+    <div class="btn-row">
+      <button id="tab-login" class="full-width">Entrar</button>
+      <button id="tab-signup" class="secondary full-width">Criar conta</button>
+    </div>
+
+    <div id="form-login">
+      <label for="login-username">Usuario</label>
+      <input type="text" id="login-username" placeholder="seu usuario" />
+      <label for="login-password">Senha</label>
+      <input type="password" id="login-password" placeholder="sua senha" />
+      <button class="full-width" id="btn-login">Entrar</button>
+    </div>
+
+    <div id="form-signup" style="display:none;">
+      <label for="signup-username">Usuario</label>
+      <input type="text" id="signup-username" placeholder="letras, numeros e _" />
+      <label for="signup-password">Senha</label>
+      <input type="password" id="signup-password" placeholder="pelo menos 4 caracteres" />
+      <label for="signup-confirm">Confirmar senha</label>
+      <input type="password" id="signup-confirm" placeholder="repete a senha" />
+      <button class="full-width" id="btn-signup">Criar conta</button>
+    </div>
+
+    <p class="small" id="auth-error" style="color:var(--red); display:none;"></p>
+  </div>
+</div>
+
+<script src="/js/login.js"></script>
+</body>
+</html>
