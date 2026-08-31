@@ -36,15 +36,21 @@ import {
 
   gameCodeEl.textContent = gameId;
 
-  const lastRolls = {}; // playerId -> ultimo valor rolado (sobrevive ao re-render)
   let latestGame = null;
   let latestPlayersRaw = [];
   let latestFines = [];
+  const seenRollAt = {}; // playerId -> timestamp da ultima rolagem ja renderizada
 
   function barColor(percent) {
     if (percent <= 30) return 'var(--red)';
     if (percent <= 60) return 'var(--orange)';
     return 'var(--green)';
+  }
+
+  function popAnimate(el) {
+    el.classList.remove('dice-pop');
+    void el.offsetWidth;
+    el.classList.add('dice-pop');
   }
 
   function playerCard(player) {
@@ -104,21 +110,22 @@ import {
       <button class="secondary full-width btn-lap">+1 volta</button>
     `;
 
-    if (lastRolls[player.id] != null) {
+    if (player.lastRoll) {
       const resultEl = div.querySelector('.dice-result-mini');
       resultEl.style.display = 'block';
-      resultEl.textContent = lastRolls[player.id];
+      resultEl.textContent = player.lastRoll.value;
+      if (seenRollAt[player.id] !== player.lastRoll.at) {
+        const wasSeenBefore = seenRollAt[player.id] !== undefined;
+        seenRollAt[player.id] = player.lastRoll.at;
+        if (wasSeenBefore) popAnimate(resultEl);
+      }
     }
 
     div.querySelector('.btn-roll').addEventListener('click', async () => {
       const errorEl = div.querySelector('.roll-error-mini');
       errorEl.style.display = 'none';
       try {
-        const res = await api(player.id, 'roll');
-        lastRolls[player.id] = res.value;
-        const resultEl = div.querySelector('.dice-result-mini');
-        resultEl.style.display = 'block';
-        resultEl.textContent = res.value;
+        await api(player.id, 'roll');
       } catch (err) {
         errorEl.style.display = 'block';
         errorEl.textContent = err.message;

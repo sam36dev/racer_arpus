@@ -60,7 +60,16 @@ import {
     lapsCurrent: document.getElementById('laps-current'),
     lapsTotal: document.getElementById('laps-total'),
     btnLap: document.getElementById('btn-lap'),
+
+    opponentsList: document.getElementById('opponents-list'),
   };
+
+  function popAnimate(el) {
+    el.classList.remove('dice-pop');
+    // eslint-disable-next-line no-unused-expressions
+    void el.offsetWidth; // forca reflow pra poder re-rodar a animacao
+    el.classList.add('dice-pop');
+  }
 
   function barColor(percent) {
     if (percent <= 30) return 'var(--red)';
@@ -71,6 +80,8 @@ import {
   let latestGame = null;
   let latestPlayerRaw = null;
   let latestFines = [];
+  let latestPlayersRaw = [];
+  const seenRollAt = {}; // playerId -> timestamp da ultima rolagem ja animada
 
   function render() {
     if (!latestGame || !latestPlayerRaw) return;
@@ -138,6 +149,43 @@ import {
     // Bloqueios de rolagem
     const blocked = player.eliminated || player.fuel.empty;
     el.btnRoll.disabled = blocked || latestGame.status === 'finished';
+
+    // Rolagem persistida do proprio jogador (sincroniza entre abas/recarregamentos)
+    if (player.lastRoll && seenRollAt[playerId] !== player.lastRoll.at) {
+      seenRollAt[playerId] = player.lastRoll.at;
+      el.diceResult.style.display = 'block';
+      el.diceResult.textContent = player.lastRoll.value;
+      popAnimate(el.diceResult);
+    }
+
+    // Outros pilotos: mostra o ultimo numero que cada um tirou
+    const opponents = latestPlayersRaw
+      .filter((p) => p.id !== playerId)
+      .map((p) => window.GameCalc.serializePlayer(p));
+
+    el.opponentsList.innerHTML = opponents.length
+      ? ''
+      : '<p class="small">Ninguem alem de voce entrou ainda.</p>';
+
+    opponents.forEach((opp) => {
+      const row = document.createElement('div');
+      row.className = 'opponent-row';
+      const hasRoll = !!opp.lastRoll;
+      row.innerHTML = `
+        <span class="color-dot" style="background:${opp.color}"></span>
+        <span class="name">${opp.name}</span>
+        <span class="roll-value ${hasRoll ? '' : 'empty'}">${hasRoll ? opp.lastRoll.value : '—'}</span>
+      `;
+      el.opponentsList.appendChild(row);
+
+      if (hasRoll && seenRollAt[opp.id] !== opp.lastRoll.at) {
+        seenRollAt[opp.id] = opp.lastRoll.at;
+        if (seenRollAt[opp.id + ':init'] !== undefined) {
+          popAnimate(row.querySelector('.roll-value'));
+        }
+        seenRollAt[opp.id + ':init'] = true;
+      }
+    });
   }
 
   onSnapshot(doc(db, 'games', gameId), (snap) => {
@@ -154,6 +202,11 @@ import {
 
   onSnapshot(collection(db, 'games', gameId, 'fines'), (snap) => {
     latestFines = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    render();
+  });
+
+  onSnapshot(collection(db, 'games', gameId, 'players'), (snap) => {
+    latestPlayersRaw = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     render();
   });
 

@@ -137,6 +137,7 @@ async function rollDice(gameId, playerId) {
       tireRollsUsed: newTireRolls,
       tireLevel: newTireLevel,
       eliminated,
+      lastRoll: { value, diceType: rollDiceType, at: Date.now() },
     });
 
     return { value, diceType: rollDiceType, userId: player.userId, justEliminated: eliminated && !player.eliminated };
@@ -326,6 +327,7 @@ function serializePlayer(player) {
       penaltyDice: override,
     },
     laps: player.laps,
+    lastRoll: player.lastRoll || null,
     createdAt: player.createdAt,
   };
 }

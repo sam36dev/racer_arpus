@@ -69,6 +69,7 @@ window.GameCalc = (function () {
         penaltyDice: override,
       },
       laps: player.laps,
+      lastRoll: player.lastRoll || null,
     };
   }
 
