@@ -24,6 +24,12 @@
   tabLogin.addEventListener('click', showLogin);
   tabSignup.addEventListener('click', showSignup);
 
+  document.getElementById('show-passwords').addEventListener('change', (e) => {
+    const type = e.target.checked ? 'text' : 'password';
+    document.getElementById('signup-password').type = type;
+    document.getElementById('signup-confirm').type = type;
+  });
+
   function showError(message) {
     errorEl.textContent = message;
     errorEl.style.display = 'block';

@@ -19,19 +19,23 @@
 
     <div id="form-login">
       <label for="login-username">Usuario</label>
-      <input type="text" id="login-username" placeholder="seu usuario" />
+      <input type="text" id="login-username" placeholder="seu usuario" autocomplete="username" autocapitalize="off" spellcheck="false" />
       <label for="login-password">Senha</label>
-      <input type="password" id="login-password" placeholder="sua senha" />
+      <input type="password" id="login-password" placeholder="sua senha" autocomplete="current-password" />
       <button class="full-width" id="btn-login">Entrar</button>
     </div>
 
     <div id="form-signup" style="display:none;">
       <label for="signup-username">Usuario</label>
-      <input type="text" id="signup-username" placeholder="letras, numeros e _" />
+      <input type="text" id="signup-username" placeholder="letras, numeros e _" autocomplete="username" autocapitalize="off" spellcheck="false" />
       <label for="signup-password">Senha</label>
-      <input type="password" id="signup-password" placeholder="pelo menos 4 caracteres" />
+      <input type="password" id="signup-password" placeholder="pelo menos 4 caracteres" autocomplete="new-password" />
       <label for="signup-confirm">Confirmar senha</label>
-      <input type="password" id="signup-confirm" placeholder="repete a senha" />
+      <input type="password" id="signup-confirm" placeholder="repete a senha" autocomplete="new-password" />
+      <label style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+        <input type="checkbox" id="show-passwords" style="width:auto;" />
+        <span class="small" style="margin:0;">Mostrar senhas</span>
+      </label>
       <button class="full-width" id="btn-signup">Criar conta</button>
     </div>
 
