@@ -16,5 +16,10 @@ service cloud.firestore {
         allow write: if false;
       }
     }
+
+    match /users/{userId} {
+      allow read: if true;  // ranking e conquistas precisam ler perfis publicamente
+      allow write: if false; // login/cadastro e stats passam pelo backend (Admin SDK)
+    }
   }
 }
