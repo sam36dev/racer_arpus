@@ -16,6 +16,24 @@
     <span class="status-pill status-lobby" id="game-status">lobby</span>
   </p>
 
+  <div class="card card-luck">
+    <h3>🎴 Cartas da Sorte</h3>
+    <p class="small">Tire a carta no baralho fisico, escolha o jogador (e o oponente, se a carta pedir) e ative aqui.</p>
+    <label for="luck-activate-card">Carta</label>
+    <select id="luck-activate-card"></select>
+    <label for="luck-activate-player">Jogador</label>
+    <select id="luck-activate-player"></select>
+    <div id="luck-activate-target-wrap" style="display:none;">
+      <label for="luck-activate-target">Oponente (observar)</label>
+      <select id="luck-activate-target"></select>
+    </div>
+    <button class="full-width" id="btn-activate-luck-card">Ativar carta</button>
+    <div id="luck-activate-error" class="danger-banner" style="display:none;"></div>
+
+    <div class="bar-label mt-24"><span>Historico</span></div>
+    <div class="luck-log-list" id="luck-log-list"></div>
+  </div>
+
   <div class="card">
     <h3>Adicionar jogador</h3>
     <div class="btn-row">
@@ -26,11 +44,6 @@
 
   <div id="winner-banner" class="card" style="display:none; text-align:center; background:#0d3a2a;">
     <h2 id="winner-text"></h2>
-  </div>
-
-  <div class="card">
-    <h3>🎴 Historico de Cartas da Sorte</h3>
-    <div class="luck-log-list" id="luck-log-list"></div>
   </div>
 
   <div class="player-grid" id="player-grid"></div>

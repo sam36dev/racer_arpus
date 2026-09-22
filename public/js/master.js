@@ -69,6 +69,86 @@ import {
       render();
     });
 
+  // --- Painel unico de ativar carta da sorte (fica no topo, escolhe carta + jogador). Os
+  // elementos sao fixos no HTML (nao recriados a cada render), entao os listeners abaixo
+  // sao ligados uma unica vez aqui fora - so as OPCOES dos selects sao atualizadas a cada
+  // render, preservando a selecao atual do mestre quando o valor escolhido ainda existir.
+  const luckCardSelect = document.getElementById('luck-activate-card');
+  const luckPlayerSelect = document.getElementById('luck-activate-player');
+  const luckTargetWrap = document.getElementById('luck-activate-target-wrap');
+  const luckTargetSelect = document.getElementById('luck-activate-target');
+  const luckActivateError = document.getElementById('luck-activate-error');
+  const btnActivateLuckCard = document.getElementById('btn-activate-luck-card');
+
+  function setSelectOptions(select, optionsHtml) {
+    const previousValue = select.value;
+    select.innerHTML = optionsHtml;
+    if ([...select.options].some((o) => o.value === previousValue)) {
+      select.value = previousValue;
+    }
+  }
+
+  function syncLuckTargetOptions() {
+    const chosenPlayerId = luckPlayerSelect.value;
+    setSelectOptions(
+      luckTargetSelect,
+      latestPlayersRaw
+        .filter((p) => p.id !== chosenPlayerId)
+        .map((p) => `<option value="${p.id}">${p.name}</option>`)
+        .join('')
+    );
+  }
+
+  function syncLuckTargetVisibility() {
+    const needsTarget = luckCardSelect.selectedOptions[0]?.dataset.needsTarget;
+    luckTargetWrap.style.display = needsTarget ? 'block' : 'none';
+    if (needsTarget) syncLuckTargetOptions();
+  }
+
+  function refreshLuckActivatePanelOptions() {
+    setSelectOptions(
+      luckCardSelect,
+      luckCatalog
+        .map(
+          (c) =>
+            `<option value="${c.id}" data-needs-target="${c.effect.type === 'watchOpponent' ? '1' : ''}">${c.icon} ${c.name}</option>`
+        )
+        .join('')
+    );
+    setSelectOptions(luckPlayerSelect, latestPlayersRaw.map((p) => `<option value="${p.id}">${p.name}</option>`).join(''));
+    syncLuckTargetVisibility();
+    btnActivateLuckCard.disabled = !luckCatalog.length || !latestPlayersRaw.length;
+  }
+
+  luckCardSelect.addEventListener('change', syncLuckTargetVisibility);
+  luckPlayerSelect.addEventListener('change', syncLuckTargetOptions);
+
+  busyClick(btnActivateLuckCard, async () => {
+    luckActivateError.style.display = 'none';
+    const cardId = luckCardSelect.value;
+    const playerId = luckPlayerSelect.value;
+    if (!cardId || !playerId) {
+      luckActivateError.style.display = 'block';
+      luckActivateError.textContent = 'Escolha a carta e o jogador.';
+      return;
+    }
+
+    const needsTarget = luckCardSelect.selectedOptions[0]?.dataset.needsTarget;
+    const targetPlayerId = luckTargetSelect.value;
+    if (needsTarget && !targetPlayerId) {
+      luckActivateError.style.display = 'block';
+      luckActivateError.textContent = 'Escolha o oponente pra essa carta.';
+      return;
+    }
+
+    try {
+      await api(playerId, 'activate-card', { cardId, targetPlayerId: needsTarget ? targetPlayerId : undefined });
+    } catch (err) {
+      luckActivateError.style.display = 'block';
+      luckActivateError.textContent = err.message;
+    }
+  });
+
   function barColor(percent) {
     if (percent <= 30) return 'var(--red)';
     if (percent <= 60) return 'var(--orange)';
@@ -137,19 +217,10 @@ import {
       <div class="bar-label mt-24"><span>🏁 Voltas</span><span class="bar-value">${player.laps}/${latestGame.totalLaps}</span></div>
       <button class="secondary full-width btn-lap">+1 volta</button>
 
-      <div class="bar-label mt-24"><span>🎴 Carta da Sorte</span></div>
-      ${player.lastCard ? `<div class="card-mini-reveal">${player.lastCard.icon} <strong>${player.lastCard.name}</strong> — ${player.lastCard.description}</div>` : ''}
-      <div class="btn-row">
-        <select class="luck-card-select">
-          ${luckCatalog.map((c) => `<option value="${c.id}" data-needs-target="${c.effect.type === 'watchOpponent' ? '1' : ''}">${c.icon} ${c.name}</option>`).join('')}
-        </select>
-        <button class="secondary btn-activate-card" ${luckCatalog.length ? '' : 'disabled'}>Ativar carta</button>
-      </div>
-      <select class="luck-card-target-select" style="display:none; margin-top:8px;">
-        <option value="">Observar quem?</option>
-        ${latestPlayersRaw.filter((p) => p.id !== player.id).map((p) => `<option value="${p.id}">${p.name}</option>`).join('')}
-      </select>
-      <div class="card-error-mini danger-banner" style="display:none;"></div>
+      ${player.lastCard ? `
+        <div class="bar-label mt-24"><span>🎴 Ultima carta</span></div>
+        <div class="card-mini-reveal">${player.lastCard.icon} <strong>${player.lastCard.name}</strong> — ${player.lastCard.description}</div>
+      ` : ''}
 
       ${player.activeEffects.length ? `
         <div class="bar-label mt-24"><span>⚡ Efeitos ativos</span></div>
@@ -209,38 +280,6 @@ import {
     });
     busyClick(div.querySelector('.btn-upgrade-turbo'), () => api(player.id, 'upgrade-turbo').catch(() => {}));
     busyClick(div.querySelector('.btn-lap'), () => api(player.id, 'complete-lap').catch(() => {}));
-
-    const cardSelect = div.querySelector('.luck-card-select');
-    const cardTargetSelect = div.querySelector('.luck-card-target-select');
-
-    function syncCardTargetVisibility() {
-      const needsTarget = cardSelect.selectedOptions[0]?.dataset.needsTarget;
-      cardTargetSelect.style.display = needsTarget ? 'block' : 'none';
-    }
-    cardSelect.addEventListener('change', syncCardTargetVisibility);
-    syncCardTargetVisibility();
-
-    busyClick(div.querySelector('.btn-activate-card'), async () => {
-      const errorEl = div.querySelector('.card-error-mini');
-      errorEl.style.display = 'none';
-      const cardId = cardSelect.value;
-      if (!cardId) return;
-
-      const needsTarget = cardSelect.selectedOptions[0]?.dataset.needsTarget;
-      const targetPlayerId = cardTargetSelect.value;
-      if (needsTarget && !targetPlayerId) {
-        errorEl.style.display = 'block';
-        errorEl.textContent = 'Escolha o oponente pra essa carta.';
-        return;
-      }
-
-      try {
-        await api(player.id, 'activate-card', { cardId, targetPlayerId: needsTarget ? targetPlayerId : undefined });
-      } catch (err) {
-        errorEl.style.display = 'block';
-        errorEl.textContent = err.message;
-      }
-    });
 
     const effectErrorEl = div.querySelector('.effect-error-mini');
 
@@ -329,6 +368,7 @@ import {
     ordered.forEach((player) => grid.appendChild(playerCard(player)));
 
     renderLuckLog();
+    refreshLuckActivatePanelOptions();
   }
 
   onSnapshot(doc(db, 'games', gameId), (snap) => {
