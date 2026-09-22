@@ -37,6 +37,7 @@ window.GameCalc = (function () {
 
   // Espelho de FUEL_CONSUMPTION_OVERRIDES + fuelConsumptionPerRoll em src/constants.js.
   const FUEL_CONSUMPTION_OVERRIDES = {
+    2: 0.25,
     4: 0.5,
   };
 
