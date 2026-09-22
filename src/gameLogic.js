@@ -367,6 +367,22 @@ async function listFines(gameId) {
   return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
 
+// Mestre quita (zera) todas as multas de um jogador de uma vez, depois que ele paga na mesa.
+async function clearFines(gameId, playerId) {
+  await getPlayer(gameId, playerId); // valida que o jogador existe
+  const snap = await finesCol(gameId).where('playerId', '==', playerId).get();
+  const batch = db.batch();
+  snap.docs.forEach((doc) => batch.delete(doc.ref));
+  await batch.commit();
+  return listFines(gameId);
+}
+
+// Remove uma multa especifica (corrige valor/motivo errado aplicado por engano).
+async function removeFine(gameId, fineId) {
+  await finesCol(gameId).doc(fineId).delete();
+  return listFines(gameId);
+}
+
 function luckCardsCol(gameId) {
   return gameRef(gameId).collection('luckCards');
 }
@@ -600,6 +616,8 @@ module.exports = {
   completeLap,
   applyFine,
   listFines,
+  clearFines,
+  removeFine,
   activateCard,
   clearEffect,
   transferEffect,

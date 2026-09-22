@@ -51,6 +51,7 @@ Os números de balanceamento ficam todos em [src/constants.js](src/constants.js)
 - **Pneu gasto sempre vence o turbo** — é isso que `effectiveDice()` faz. Um d12 com pneu nível 3 rola d2.
 - **Voltas**: 10 pra terminar. A primeira a chegar marca `status: 'finished'` e vira `winnerPlayerId`. Completar volta **não** desconta pneu — o desgaste já vem das rolagens normais (ver abaixo); descontar de novo por volta seria contar o mesmo desgaste duas vezes.
 - Reparar pneu (+1 nível) e trocar de marca (reseta pro 10) são livres no app — o custo é físico, na mesa.
+- **Multas**: só o mestre aplica (`applyFine`). Pagamento é físico, então o mestre também quita — `removeFine` tira uma multa específica (corrigir erro) e `clearFines` zera todas as de um jogador de uma vez (depois que ele paga na mesa).
 
 Regras marcadas como ASSUNÇÃO nos comentários (ex: o consumo proporcional ao dado) foram deduzidas, não confirmadas pelo cartão oficial. Se o usuário trouxer o número real, ajuste a constante e apague a nota.
 

@@ -262,6 +262,14 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 .fines-list div { padding: 4px 0; border-bottom: 1px solid var(--border); }
 
+.fine-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.fine-row button { padding: 2px 10px; font-size: 0.8rem; flex-shrink: 0; }
+
 .game-code {
   font-family: monospace;
   font-size: 1.6rem;

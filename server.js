@@ -115,6 +115,22 @@ app.post(
   })
 );
 
+app.post(
+  '/api/games/:gameId/players/:playerId/clear-fines',
+  wrap(async (req) => {
+    const fines = await game.clearFines(req.params.gameId, req.params.playerId);
+    return { fines };
+  })
+);
+
+app.post(
+  '/api/games/:gameId/fines/:fineId/remove',
+  wrap(async (req) => {
+    const fines = await game.removeFine(req.params.gameId, req.params.fineId);
+    return { fines };
+  })
+);
+
 // --- Cartas da sorte (baralho fisico - o mestre le a carta e ativa pro jogador certo) ---
 
 app.get(

@@ -30,6 +30,18 @@ import {
       return data;
     });
 
+  // Pra rotas que nao pendem de um playerId (ex: remover uma multa especifica pelo id dela).
+  const apiPath = (path, body) =>
+    fetch(`/api/games/${gameId}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro na acao');
+      return data;
+    });
+
   // Desabilita o botao e mostra "..." enquanto a requisicao esta em voo, pra
   // dar feedback imediato mesmo quando o servidor demora (cold start na Vercel).
   function busyClick(button, fn) {
@@ -230,11 +242,22 @@ import {
       </div>
 
       <div class="bar-label mt-24"><span>📋 Multas</span><span class="bar-value">R$ ${finesTotal.toLocaleString('pt-BR')}</span></div>
+      ${fines.length ? `
+        <div class="fines-list">
+          ${fines.map((f) => `
+            <div class="fine-row" data-fine-id="${f.id}">
+              <span>R$ ${f.amount.toLocaleString('pt-BR')} — ${f.reason || 'sem motivo'}</span>
+              <button class="secondary btn-remove-fine" data-fine-id="${f.id}" title="Remover essa multa">✕</button>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
       <div class="btn-row">
         <input type="number" class="fine-amount" placeholder="Valor (R$)" value="1000" style="flex:1" />
         <input type="text" class="fine-reason" placeholder="Motivo" style="flex:2" />
       </div>
       <button class="danger full-width btn-apply-fine">Aplicar multa</button>
+      ${fines.length ? '<button class="secondary full-width btn-clear-fines">Quitar todas as multas</button>' : ''}
 
       <div class="bar-label mt-24"><span>🌀 Turbo — posicao ${player.turboPosition} (d${player.turboDiceType})</span><span class="bar-value">${player.turbo.nextPosition != null ? `faltam ${player.turbo.nextPosition - player.turbo.position} p/ d${player.turbo.nextDice}` : 'maximo'}</span></div>
       <div class="bar-track"><div class="bar-fill" style="width:${player.turbo.percent}%; background:var(--purple);"></div></div>
@@ -306,6 +329,13 @@ import {
       const p = api(player.id, 'fine', { amount, reason }).catch(() => {});
       div.querySelector('.fine-reason').value = '';
       return p;
+    });
+
+    const btnClearFines = div.querySelector('.btn-clear-fines');
+    if (btnClearFines) busyClick(btnClearFines, () => api(player.id, 'clear-fines').catch(() => {}));
+
+    div.querySelectorAll('.btn-remove-fine').forEach((btn) => {
+      busyClick(btn, () => apiPath(`/fines/${btn.dataset.fineId}/remove`).catch(() => {}));
     });
     busyClick(div.querySelector('.btn-upgrade-turbo'), () => api(player.id, 'upgrade-turbo', { delta: 1 }).catch(() => {}));
     busyClick(div.querySelector('.btn-downgrade-turbo'), () => api(player.id, 'upgrade-turbo', { delta: -1 }).catch(() => {}));
