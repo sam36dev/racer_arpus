@@ -74,9 +74,10 @@
 
   <!-- 4. NIVEL DO CARRO / TURBO -->
   <div class="card">
-    <div class="stat-row"><span class="stat-icon">🌀</span><h3>Nivel do carro</h3></div>
-    <p class="small">Posicao na trilha de turbo: <span id="turbo-position">0</span> (turbo daria <span id="turbo-dice-badge">d6</span>)</p>
-    <p>Dado que voce realmente rola agora: <span class="badge tag-dice" id="dice-badge">d6</span></p>
+    <div class="stat-row"><span class="stat-icon">🌀</span><h3>Turbo</h3></div>
+    <div class="bar-label"><span>Posicao <span id="turbo-position">0</span></span><span class="bar-value" id="turbo-next-label">--</span></div>
+    <div class="bar-track"><div class="bar-fill" id="turbo-bar" style="width:0%; background: var(--purple);"></div></div>
+    <p class="small">Turbo daria <span class="badge tag-dice" id="turbo-dice-badge">d6</span> — dado que voce realmente rola agora: <span class="badge tag-dice" id="dice-badge">d6</span></p>
     <div id="tire-override-note" class="small" style="display:none;">O pneu desgastado esta limitando seu dado, mesmo com o turbo mais alto.</div>
     <div id="active-effects-list" class="active-effects-list"></div>
   </div>

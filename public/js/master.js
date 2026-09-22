@@ -211,7 +211,8 @@ import {
       </div>
       <button class="danger full-width btn-apply-fine">Aplicar multa</button>
 
-      <div class="bar-label mt-24"><span>🌀 Turbo (posicao ${player.turboPosition})</span></div>
+      <div class="bar-label mt-24"><span>🌀 Turbo — posicao ${player.turboPosition} (d${player.turboDiceType})</span><span class="bar-value">${player.turbo.nextPosition != null ? `faltam ${player.turbo.nextPosition - player.turbo.position} p/ d${player.turbo.nextDice}` : 'maximo'}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${player.turbo.percent}%; background:var(--purple);"></div></div>
       <button class="secondary full-width btn-upgrade-turbo">Subir nivel de turbo</button>
 
       <div class="bar-label mt-24"><span>🏁 Voltas</span><span class="bar-value">${player.laps}/${latestGame.totalLaps}</span></div>

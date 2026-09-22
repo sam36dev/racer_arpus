@@ -80,6 +80,8 @@ import {
     finesList: document.getElementById('fines-list'),
 
     turboPosition: document.getElementById('turbo-position'),
+    turboBar: document.getElementById('turbo-bar'),
+    turboNextLabel: document.getElementById('turbo-next-label'),
     turboDiceBadge: document.getElementById('turbo-dice-badge'),
     diceBadge: document.getElementById('dice-badge'),
     tireOverrideNote: document.getElementById('tire-override-note'),
@@ -167,6 +169,10 @@ import {
 
     // Turbo / nivel
     el.turboPosition.textContent = player.turboPosition;
+    el.turboBar.style.width = `${player.turbo.percent}%`;
+    el.turboNextLabel.textContent = player.turbo.nextPosition != null
+      ? `faltam ${player.turbo.nextPosition - player.turbo.position} p/ d${player.turbo.nextDice}`
+      : 'turbo no maximo (d12)';
     el.turboDiceBadge.textContent = `d${player.turboDiceType}`;
     el.diceBadge.textContent = `d${player.diceType}`;
     el.tireOverrideNote.style.display = player.diceType < player.turboDiceType ? 'block' : 'none';

@@ -51,6 +51,24 @@ window.GameCalc = (function () {
     return override != null ? override : turboDice;
   }
 
+  // Progresso do turbo ate o proximo salto de dado - espelho de turboProgress() em src/constants.js.
+  function turboProgress(position) {
+    let bandStart = TURBO_DICE_THRESHOLDS[0].position;
+    let next = null;
+    for (const step of TURBO_DICE_THRESHOLDS) {
+      if (position >= step.position) {
+        bandStart = step.position;
+      } else {
+        next = step;
+        break;
+      }
+    }
+    if (!next) return { percent: 100, nextPosition: null, nextDice: null };
+    const span = next.position - bandStart;
+    const percent = span > 0 ? Math.round(((position - bandStart) / span) * 100) : 100;
+    return { percent: Math.max(0, Math.min(100, percent)), nextPosition: next.position, nextDice: next.dice };
+  }
+
   function serializePlayer(player) {
     // 'Kit Gas' (diceLock) e 'D12 Temporario' (d12TempActive) travam o dado igual ao pneu
     // gasto faria - se os dois estiverem ligados ao mesmo tempo, o diceLock manda.
@@ -64,6 +82,8 @@ window.GameCalc = (function () {
     const rollsUntilNextLevel = Math.max(0, tireInfo.rollsPerLevel - player.tireRollsUsed);
     const override = tireDiceOverride(player.tireLevel);
 
+    const turboProg = turboProgress(player.turboPosition);
+
     return {
       id: player.id,
       name: player.name,
@@ -71,6 +91,13 @@ window.GameCalc = (function () {
       diceType: rollDiceType,
       turboDiceType: player.diceType,
       turboPosition: player.turboPosition,
+      turbo: {
+        position: player.turboPosition,
+        diceType: player.diceType,
+        percent: turboProg.percent,
+        nextPosition: turboProg.nextPosition,
+        nextDice: turboProg.nextDice,
+      },
       eliminated: !!player.eliminated,
       fuel: {
         current: player.fuelCurrent,

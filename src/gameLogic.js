@@ -10,6 +10,7 @@ const {
   TOTAL_LAPS,
   fuelConsumptionPerRoll,
   diceForTurboPosition,
+  turboProgress,
   tireDiceOverride,
   effectiveDice,
 } = require('./constants');
@@ -479,6 +480,8 @@ function serializePlayer(player) {
     .filter(({ meta, value }) => value !== undefined && value !== meta.default)
     .map(({ field, meta, value }) => ({ field, label: meta.label(value), value, transferable: !!meta.transferable }));
 
+  const turboProg = turboProgress(player.turboPosition);
+
   return {
     id: player.id,
     gameId: player.gameId,
@@ -487,6 +490,13 @@ function serializePlayer(player) {
     diceType: rollDiceType,
     turboDiceType: player.diceType,
     turboPosition: player.turboPosition,
+    turbo: {
+      position: player.turboPosition,
+      diceType: player.diceType,
+      percent: turboProg.percent,
+      nextPosition: turboProg.nextPosition,
+      nextDice: turboProg.nextDice,
+    },
     eliminated: !!player.eliminated,
     fuel: {
       current: player.fuelCurrent,

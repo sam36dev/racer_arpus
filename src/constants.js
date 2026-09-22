@@ -48,6 +48,28 @@ function diceForTurboPosition(position) {
   return dice;
 }
 
+// Progresso do turbo ate o proximo salto de dado (pra desenhar uma barra tipo
+// combustivel/pneu na tela do jogador). Se ja estiver no ultimo degrau (d12), retorna
+// a barra cheia e sem proximo degrau.
+function turboProgress(position) {
+  let bandStart = TURBO_DICE_THRESHOLDS[0].position;
+  let next = null;
+  for (const step of TURBO_DICE_THRESHOLDS) {
+    if (position >= step.position) {
+      bandStart = step.position;
+    } else {
+      next = step;
+      break;
+    }
+  }
+  if (!next) {
+    return { percent: 100, nextPosition: null, nextDice: null };
+  }
+  const span = next.position - bandStart;
+  const percent = span > 0 ? Math.round(((position - bandStart) / span) * 100) : 100;
+  return { percent: Math.max(0, Math.min(100, percent)), nextPosition: next.position, nextDice: next.dice };
+}
+
 // Dado efetivo pra rolar: pneu desgastado sempre manda sobre o turbo.
 // `diceLock` (carta da sorte tipo Kit Gas, ver src/luckCards.js) trava o dado
 // nesse valor e sobrepoe tudo, ate o mestre remover ou transferir o efeito.
@@ -69,6 +91,7 @@ module.exports = {
   TOTAL_LAPS,
   fuelConsumptionPerRoll,
   diceForTurboPosition,
+  turboProgress,
   tireDiceOverride,
   effectiveDice,
 };
