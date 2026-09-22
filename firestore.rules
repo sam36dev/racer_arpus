@@ -15,6 +15,11 @@ service cloud.firestore {
         allow read: if true;
         allow write: if false;
       }
+
+      match /luckCards/{cardLogId} {
+        allow read: if true;  // historico de cartas da sorte ativadas, publico como as multas
+        allow write: if false;
+      }
     }
 
     match /users/{userId} {

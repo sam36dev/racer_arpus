@@ -3,6 +3,9 @@ import {
   doc,
   onSnapshot,
   collection,
+  query,
+  orderBy,
+  limit,
 } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
 
 (function () {
@@ -55,7 +58,16 @@ import {
   let latestGame = null;
   let latestPlayersRaw = [];
   let latestFines = [];
+  let latestLuckLog = [];
+  let luckCatalog = []; // catalogo de cartas da sorte, carregado uma vez da API
   const seenRollAt = {}; // playerId -> timestamp da ultima rolagem ja renderizada
+
+  fetch('/api/luck-cards/catalog')
+    .then((res) => res.json())
+    .then((catalog) => {
+      luckCatalog = catalog;
+      render();
+    });
 
   function barColor(percent) {
     if (percent <= 30) return 'var(--red)';
@@ -124,6 +136,38 @@ import {
 
       <div class="bar-label mt-24"><span>🏁 Voltas</span><span class="bar-value">${player.laps}/${latestGame.totalLaps}</span></div>
       <button class="secondary full-width btn-lap">+1 volta</button>
+
+      <div class="bar-label mt-24"><span>🎴 Carta da Sorte</span></div>
+      ${player.lastCard ? `<div class="card-mini-reveal">${player.lastCard.icon} <strong>${player.lastCard.name}</strong> — ${player.lastCard.description}</div>` : ''}
+      <div class="btn-row">
+        <select class="luck-card-select">
+          ${luckCatalog.map((c) => `<option value="${c.id}" data-needs-target="${c.effect.type === 'watchOpponent' ? '1' : ''}">${c.icon} ${c.name}</option>`).join('')}
+        </select>
+        <button class="secondary btn-activate-card" ${luckCatalog.length ? '' : 'disabled'}>Ativar carta</button>
+      </div>
+      <select class="luck-card-target-select" style="display:none; margin-top:8px;">
+        <option value="">Observar quem?</option>
+        ${latestPlayersRaw.filter((p) => p.id !== player.id).map((p) => `<option value="${p.id}">${p.name}</option>`).join('')}
+      </select>
+      <div class="card-error-mini danger-banner" style="display:none;"></div>
+
+      ${player.activeEffects.length ? `
+        <div class="bar-label mt-24"><span>⚡ Efeitos ativos</span></div>
+        ${player.activeEffects.map((eff) => `
+          <div class="effect-row" data-field="${eff.field}">
+            <span class="badge tag-effect">${eff.label}</span>
+            <button class="secondary btn-clear-effect" data-field="${eff.field}">✕ Remover</button>
+            ${eff.transferable ? `<button class="secondary btn-transfer-effect" data-field="${eff.field}">➜ Transferir</button>` : ''}
+            ${eff.transferable ? `
+              <select class="transfer-target-select" data-field="${eff.field}" style="display:none;">
+                <option value="">Enviar pra quem?</option>
+                ${latestPlayersRaw.filter((p) => p.id !== player.id).map((p) => `<option value="${p.id}">${p.name}</option>`).join('')}
+              </select>
+            ` : ''}
+          </div>
+        `).join('')}
+        <div class="effect-error-mini danger-banner" style="display:none;"></div>
+      ` : ''}
     `;
 
     if (player.lastRoll) {
@@ -166,7 +210,101 @@ import {
     busyClick(div.querySelector('.btn-upgrade-turbo'), () => api(player.id, 'upgrade-turbo').catch(() => {}));
     busyClick(div.querySelector('.btn-lap'), () => api(player.id, 'complete-lap').catch(() => {}));
 
+    const cardSelect = div.querySelector('.luck-card-select');
+    const cardTargetSelect = div.querySelector('.luck-card-target-select');
+
+    function syncCardTargetVisibility() {
+      const needsTarget = cardSelect.selectedOptions[0]?.dataset.needsTarget;
+      cardTargetSelect.style.display = needsTarget ? 'block' : 'none';
+    }
+    cardSelect.addEventListener('change', syncCardTargetVisibility);
+    syncCardTargetVisibility();
+
+    busyClick(div.querySelector('.btn-activate-card'), async () => {
+      const errorEl = div.querySelector('.card-error-mini');
+      errorEl.style.display = 'none';
+      const cardId = cardSelect.value;
+      if (!cardId) return;
+
+      const needsTarget = cardSelect.selectedOptions[0]?.dataset.needsTarget;
+      const targetPlayerId = cardTargetSelect.value;
+      if (needsTarget && !targetPlayerId) {
+        errorEl.style.display = 'block';
+        errorEl.textContent = 'Escolha o oponente pra essa carta.';
+        return;
+      }
+
+      try {
+        await api(player.id, 'activate-card', { cardId, targetPlayerId: needsTarget ? targetPlayerId : undefined });
+      } catch (err) {
+        errorEl.style.display = 'block';
+        errorEl.textContent = err.message;
+      }
+    });
+
+    const effectErrorEl = div.querySelector('.effect-error-mini');
+
+    div.querySelectorAll('.btn-clear-effect').forEach((btn) => {
+      busyClick(btn, async () => {
+        if (effectErrorEl) effectErrorEl.style.display = 'none';
+        try {
+          await api(player.id, 'clear-effect', { field: btn.dataset.field });
+        } catch (err) {
+          if (effectErrorEl) {
+            effectErrorEl.style.display = 'block';
+            effectErrorEl.textContent = err.message;
+          }
+        }
+      });
+    });
+
+    // A seta so revela o seletor de destino (clicar de novo esconde); a transferencia
+    // de fato acontece quando um nome e escolhido no select, ali embaixo.
+    div.querySelectorAll('.btn-transfer-effect').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const select = div.querySelector(`.transfer-target-select[data-field="${btn.dataset.field}"]`);
+        if (!select) return;
+        select.style.display = select.style.display === 'none' ? 'inline-block' : 'none';
+      });
+    });
+
+    div.querySelectorAll('.transfer-target-select').forEach((select) => {
+      select.addEventListener('change', async () => {
+        const toPlayerId = select.value;
+        if (!toPlayerId) return;
+        if (effectErrorEl) effectErrorEl.style.display = 'none';
+        select.disabled = true;
+        try {
+          await api(player.id, 'transfer-effect', { toPlayerId, field: select.dataset.field });
+        } catch (err) {
+          if (effectErrorEl) {
+            effectErrorEl.style.display = 'block';
+            effectErrorEl.textContent = err.message;
+          }
+        } finally {
+          select.disabled = false;
+          select.value = '';
+        }
+      });
+    });
+
     return div;
+  }
+
+  function renderLuckLog() {
+    const list = document.getElementById('luck-log-list');
+    if (!list) return;
+    if (!latestLuckLog.length) {
+      list.innerHTML = '<p class="small">Nenhuma carta ativada ainda.</p>';
+      return;
+    }
+    list.innerHTML = latestLuckLog
+      .map((entry) => {
+        const player = latestPlayersRaw.find((p) => p.id === entry.playerId);
+        const playerName = player ? player.name : 'Piloto removido';
+        return `<div>${entry.icon} <strong>${playerName}</strong> — ${entry.name}</div>`;
+      })
+      .join('');
   }
 
   function render() {
@@ -189,6 +327,8 @@ import {
     grid.innerHTML = '';
     const ordered = [...players].sort((a, b) => (a.id === myPlayerId ? -1 : b.id === myPlayerId ? 1 : 0));
     ordered.forEach((player) => grid.appendChild(playerCard(player)));
+
+    renderLuckLog();
   }
 
   onSnapshot(doc(db, 'games', gameId), (snap) => {
@@ -205,6 +345,11 @@ import {
   onSnapshot(collection(db, 'games', gameId, 'fines'), (snap) => {
     latestFines = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     render();
+  });
+
+  onSnapshot(query(collection(db, 'games', gameId, 'luckCards'), orderBy('appliedAt', 'desc'), limit(20)), (snap) => {
+    latestLuckLog = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    renderLuckLog();
   });
 
   document.getElementById('btn-add-player').addEventListener('click', async () => {

@@ -17,6 +17,24 @@ window.GameCalc = (function () {
     { position: 12, dice: 12 },
   ];
 
+  // Espelho de ACTIVE_EFFECTS em src/luckCards.js - so pra saber label/default/transferable
+  // de cada efeito continuo e montar os badges. Mudou algo la? Muda aqui tambem.
+  const ACTIVE_EFFECTS = {
+    tireWearMultiplier: { label: () => 'Desgaste de pneu dobrado', default: 1, transferable: false },
+    diceLock: { label: (value) => `Dado travado em D${value}`, default: null, transferable: true },
+    tanqueFuradoActive: { label: () => 'Tanque furado: -1 litro extra ao tirar 6', default: false, transferable: false },
+    d12TempActive: {
+      label: () => 'D12 temporario (1 litro/rolagem, acaba ao tirar 12)',
+      default: false,
+      transferable: false,
+    },
+    watching: {
+      label: (value) => `Observando ${value.targetName} (${(value.seenValues || []).length}/${value.targetDiceType})`,
+      default: null,
+      transferable: false,
+    },
+  };
+
   function fuelConsumptionPerRoll(diceType) {
     return diceType / 6;
   }
@@ -27,13 +45,17 @@ window.GameCalc = (function () {
     return null;
   }
 
-  function effectiveDice(turboDice, tireLevel) {
+  function effectiveDice(turboDice, tireLevel, diceLock) {
+    if (diceLock != null) return diceLock;
     const override = tireDiceOverride(tireLevel);
     return override != null ? override : turboDice;
   }
 
   function serializePlayer(player) {
-    const rollDiceType = effectiveDice(player.diceType, player.tireLevel);
+    // 'Kit Gas' (diceLock) e 'D12 Temporario' (d12TempActive) travam o dado igual ao pneu
+    // gasto faria - se os dois estiverem ligados ao mesmo tempo, o diceLock manda.
+    const forcedDice = player.diceLock != null ? player.diceLock : player.d12TempActive ? 12 : null;
+    const rollDiceType = effectiveDice(player.diceType, player.tireLevel, forcedDice);
     const consumption = fuelConsumptionPerRoll(rollDiceType);
     const fuelPercent = Math.round((player.fuelCurrent / FUEL_MAX) * 100);
     const fuelRollsLeft = Math.floor(player.fuelCurrent / consumption);
@@ -70,6 +92,12 @@ window.GameCalc = (function () {
       },
       laps: player.laps,
       lastRoll: player.lastRoll || null,
+      lastCard: player.lastCard || null,
+      watching: player.watching || null,
+      activeEffects: Object.keys(ACTIVE_EFFECTS)
+        .map((field) => ({ field, meta: ACTIVE_EFFECTS[field], value: player[field] }))
+        .filter(({ meta, value }) => value !== undefined && value !== meta.default)
+        .map(({ field, meta, value }) => ({ field, label: meta.label(value), value, transferable: !!meta.transferable })),
     };
   }
 

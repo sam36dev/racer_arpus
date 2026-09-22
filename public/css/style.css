@@ -287,3 +287,50 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .status-lobby { background: #2c2f3a; color: var(--muted); }
 .status-playing { background: #0d3a2a; color: var(--green); }
 .status-finished { background: #3a0d12; color: #ff8790; }
+
+/* --- Cartas da sorte --- */
+.card-luck {
+  border-color: var(--purple);
+  background: linear-gradient(160deg, #241a3d, var(--bg-card));
+}
+
+.card-mini-reveal {
+  background: var(--bg-card-2);
+  border: 1px solid var(--purple);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  margin-top: 8px;
+}
+
+.luck-log-list {
+  max-height: 180px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.luck-log-list div { padding: 4px 0; border-bottom: 1px solid var(--border); }
+.luck-log-list strong { color: var(--text); }
+
+/* --- Efeitos continuos (ex: Pneu Remold, Kit Gas) --- */
+.tag-effect {
+  background: var(--red);
+  color: white;
+}
+
+.active-effects-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.effect-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.effect-row select { width: auto; flex: 1; min-width: 140px; }
+.effect-row button { padding: 8px 12px; font-size: 0.85rem; }

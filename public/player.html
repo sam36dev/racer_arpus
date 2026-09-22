@@ -18,6 +18,25 @@
   <button id="btn-roll" class="dice-btn">🎲 Rolar dado</button>
   <div id="roll-error" class="danger-banner" style="display:none;"></div>
 
+  <!-- CARTA DA SORTE: aparece quando o mestre ativa uma carta pra este jogador -->
+  <div id="card-reveal" class="card card-luck" style="display:none;">
+    <div class="stat-row"><span class="stat-icon" id="card-icon">🎴</span><h3 id="card-name">Carta da Sorte</h3></div>
+    <p class="small" id="card-description"></p>
+  </div>
+
+  <!-- TRANSMISSAO SEQUENCIAL: so aparece enquanto este jogador estiver observando um oponente -->
+  <div id="watching-card" class="card" style="display:none;">
+    <div class="stat-row"><span class="stat-icon">📡</span><h3>Observando</h3></div>
+    <p class="small" id="watching-status"></p>
+  </div>
+
+  <!-- Aviso "troque de lugar!" - dispara quando o oponente observado completa o dado -->
+  <div id="swap-popup" class="card card-luck" style="display:none;">
+    <div class="stat-row"><span class="stat-icon">🔁</span><h3>Troque de lugar!</h3></div>
+    <p class="small" id="swap-popup-text"></p>
+    <button class="secondary full-width" id="btn-close-swap">Fechar</button>
+  </div>
+
   <!-- 1. COMBUSTIVEL -->
   <div class="card">
     <div class="stat-row"><span class="stat-icon">⛽</span><h3>Combustivel</h3></div>
@@ -59,6 +78,7 @@
     <p class="small">Posicao na trilha de turbo: <span id="turbo-position">0</span> (turbo daria <span id="turbo-dice-badge">d6</span>)</p>
     <p>Dado que voce realmente rola agora: <span class="badge tag-dice" id="dice-badge">d6</span></p>
     <div id="tire-override-note" class="small" style="display:none;">O pneu desgastado esta limitando seu dado, mesmo com o turbo mais alto.</div>
+    <div id="active-effects-list" class="active-effects-list"></div>
   </div>
 
   <!-- 5. VOLTAS -->

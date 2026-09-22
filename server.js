@@ -7,6 +7,7 @@ const express = require('express');
 const game = require('./src/gameLogic');
 const users = require('./src/users');
 const achievementsMod = require('./src/achievements');
+const luckCards = require('./src/luckCards');
 const { signToken, optionalAuth, requireAuth, requireAdmin, isAdmin } = require('./src/auth');
 
 const app = express();
@@ -110,6 +111,47 @@ app.post(
       req.body.reason
     );
     return { fines };
+  })
+);
+
+// --- Cartas da sorte (baralho fisico - o mestre le a carta e ativa pro jogador certo) ---
+
+app.get(
+  '/api/luck-cards/catalog',
+  wrap(async () => luckCards.catalog())
+);
+
+app.post(
+  '/api/games/:gameId/players/:playerId/activate-card',
+  wrap(async (req) => {
+    const p = await game.activateCard(
+      req.params.gameId,
+      req.params.playerId,
+      req.body.cardId,
+      req.body.targetPlayerId
+    );
+    return game.serializePlayer(p);
+  })
+);
+
+app.post(
+  '/api/games/:gameId/players/:playerId/clear-effect',
+  wrap(async (req) => {
+    const p = await game.clearEffect(req.params.gameId, req.params.playerId, req.body.field);
+    return game.serializePlayer(p);
+  })
+);
+
+app.post(
+  '/api/games/:gameId/players/:playerId/transfer-effect',
+  wrap(async (req) => {
+    const { to } = await game.transferEffect(
+      req.params.gameId,
+      req.params.playerId,
+      req.body.toPlayerId,
+      req.body.field
+    );
+    return game.serializePlayer(to);
   })
 );
 

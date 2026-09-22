@@ -49,7 +49,10 @@ function diceForTurboPosition(position) {
 }
 
 // Dado efetivo pra rolar: pneu desgastado sempre manda sobre o turbo.
-function effectiveDice(turboDice, tireLevel) {
+// `diceLock` (carta da sorte tipo Kit Gas, ver src/luckCards.js) trava o dado
+// nesse valor e sobrepoe tudo, ate o mestre remover ou transferir o efeito.
+function effectiveDice(turboDice, tireLevel, diceLock) {
+  if (diceLock != null) return diceLock;
   const override = tireDiceOverride(tireLevel);
   return override != null ? override : turboDice;
 }

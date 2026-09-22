@@ -50,6 +50,17 @@ import {
     btnRoll: document.getElementById('btn-roll'),
     rollError: document.getElementById('roll-error'),
 
+    cardReveal: document.getElementById('card-reveal'),
+    cardIcon: document.getElementById('card-icon'),
+    cardName: document.getElementById('card-name'),
+    cardDescription: document.getElementById('card-description'),
+
+    watchingCard: document.getElementById('watching-card'),
+    watchingStatus: document.getElementById('watching-status'),
+    swapPopup: document.getElementById('swap-popup'),
+    swapPopupText: document.getElementById('swap-popup-text'),
+    btnCloseSwap: document.getElementById('btn-close-swap'),
+
     fuelPercent: document.getElementById('fuel-percent'),
     fuelBar: document.getElementById('fuel-bar'),
     fuelWarning: document.getElementById('fuel-warning'),
@@ -72,6 +83,7 @@ import {
     turboDiceBadge: document.getElementById('turbo-dice-badge'),
     diceBadge: document.getElementById('dice-badge'),
     tireOverrideNote: document.getElementById('tire-override-note'),
+    activeEffectsList: document.getElementById('active-effects-list'),
 
     lapsCurrent: document.getElementById('laps-current'),
     lapsTotal: document.getElementById('laps-total'),
@@ -98,6 +110,7 @@ import {
   let latestFines = [];
   let latestPlayersRaw = [];
   const seenRollAt = {}; // playerId -> timestamp da ultima rolagem ja animada
+  let seenCardAt = null; // timestamp da ultima carta da sorte ja animada neste jogador
 
   function render() {
     if (!latestGame || !latestPlayerRaw) return;
@@ -158,6 +171,30 @@ import {
     el.diceBadge.textContent = `d${player.diceType}`;
     el.tireOverrideNote.style.display = player.diceType < player.turboDiceType ? 'block' : 'none';
 
+    el.activeEffectsList.innerHTML = player.activeEffects
+      .map((eff) => `<span class="badge tag-effect">${eff.label}</span>`)
+      .join('');
+
+    // Transmissao Sequencial: acompanhamento do oponente observado + aviso "troque de lugar"
+    if (player.watching) {
+      const seen = player.watching.seenValues || [];
+      const seenSorted = seen.slice().sort((a, b) => a - b).join(', ') || 'nenhum ainda';
+      el.watchingCard.style.display = 'block';
+      el.watchingStatus.textContent =
+        `Observando ${player.watching.targetName}: ja saiu ${seen.length}/${player.watching.targetDiceType} ` +
+        `numero(s) do dado dele (${seenSorted}).`;
+
+      if (player.watching.triggered) {
+        el.swapPopup.style.display = 'block';
+        el.swapPopupText.textContent = `${player.watching.targetName} tirou todos os numeros do dado! Troquem de lugar no tabuleiro.`;
+      } else {
+        el.swapPopup.style.display = 'none';
+      }
+    } else {
+      el.watchingCard.style.display = 'none';
+      el.swapPopup.style.display = 'none';
+    }
+
     // Voltas
     el.lapsCurrent.textContent = player.laps;
     el.lapsTotal.textContent = latestGame.totalLaps;
@@ -172,6 +209,18 @@ import {
       el.diceResult.style.display = 'block';
       el.diceResult.textContent = player.lastRoll.value;
       popAnimate(el.diceResult);
+    }
+
+    // Carta da sorte ativada pelo mestre pra este jogador
+    if (player.lastCard) {
+      el.cardReveal.style.display = 'block';
+      el.cardIcon.textContent = player.lastCard.icon;
+      el.cardName.textContent = player.lastCard.name;
+      el.cardDescription.textContent = player.lastCard.description;
+      if (seenCardAt !== player.lastCard.at) {
+        seenCardAt = player.lastCard.at;
+        popAnimate(el.cardReveal);
+      }
     }
 
     // Outros pilotos: mostra o ultimo numero que cada um tirou
@@ -246,4 +295,8 @@ import {
   busyClick(el.btnRepairTire, () => api('repair-tire').catch(() => {}));
 
   busyClick(el.btnLap, () => api('complete-lap').catch(() => {}));
+
+  // Fecha o aviso "troque de lugar" - e a propria Transmissao Sequencial se desativa
+  // (mesmo endpoint que o mestre usa pra desligar efeitos continuos manualmente).
+  busyClick(el.btnCloseSwap, () => api('clear-effect', { field: 'watching' }).catch(() => {}));
 })();
