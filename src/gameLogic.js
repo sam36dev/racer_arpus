@@ -303,31 +303,20 @@ async function upgradeTurbo(gameId, playerId, delta = 1) {
 }
 
 // `delta` so e diferente de 1 quando chamado por uma carta da sorte que da (ou tira) voltas de graca.
-// Completar volta gasta pneu: cada volta cruzada custa 1 nivel, igual uma penalidade (regra do
-// usuario). So conta pra frente (delta > 0) - perder volta nao devolve pneu. Pode eliminar o
-// jogador se zerar o pneu, igual damageTire().
+// (O pneu ja se desgasta pelas rolagens normais - completar volta NAO desconta pneu de novo,
+// senao seria descontar duas vezes pelo mesmo desgaste.)
 async function completeLap(gameId, playerId, delta = 1) {
   const pRef = playerRef(gameId, playerId);
   const gRef = gameRef(gameId);
 
-  const { userId, won, eliminated, justEliminated } = await db.runTransaction(async (t) => {
+  const { userId, won, eliminated } = await db.runTransaction(async (t) => {
     const [playerSnap, gameSnap] = await Promise.all([t.get(pRef), t.get(gRef)]);
     if (!playerSnap.exists) throw new GameError('PLAYER_NOT_FOUND', 'Jogador nao encontrado');
     if (!gameSnap.exists) throw new GameError('GAME_NOT_FOUND', 'Jogo nao encontrado');
 
     const player = playerSnap.data();
     const newLaps = Math.max(0, player.laps + delta);
-    const updates = { laps: newLaps };
-
-    let eliminated = !!player.eliminated;
-    if (delta > 0) {
-      const newTireLevel = Math.max(0, player.tireLevel - delta);
-      updates.tireLevel = newTireLevel;
-      if (newTireLevel <= 0) eliminated = true;
-    }
-    if (eliminated) updates.eliminated = true;
-
-    t.update(pRef, updates);
+    t.update(pRef, { laps: newLaps });
 
     const game = gameSnap.data();
     let won = false;
@@ -336,12 +325,8 @@ async function completeLap(gameId, playerId, delta = 1) {
       won = true;
     }
 
-    return { userId: player.userId, won, eliminated, justEliminated: eliminated && !player.eliminated };
+    return { userId: player.userId, won, eliminated: !!player.eliminated };
   });
-
-  if (justEliminated && userId) {
-    await users.incrementStats(userId, { timesEliminated: 1 });
-  }
 
   if (userId) {
     await users.incrementStats(userId, { lapsCompleted: delta });

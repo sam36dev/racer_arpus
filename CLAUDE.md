@@ -49,7 +49,7 @@ Os números de balanceamento ficam todos em [src/constants.js](src/constants.js)
 - **Pneu**: trilha de nível 10→0 (as 10 bolinhas do cartão físico). A marca define de quantas em quantas rolagens cai um nível: Pirelli 20, Continental 25, Michelin 30. Nível 7-10 sem penalidade, 5-6 limita a d4, 1-4 limita a d2, **0 elimina o piloto** (bloqueia rolagem pra sempre).
 - **Turbo**: cada upgrade avança 1 posição; posição ≥8 vira d8, ≥12 vira d12.
 - **Pneu gasto sempre vence o turbo** — é isso que `effectiveDice()` faz. Um d12 com pneu nível 3 rola d2.
-- **Voltas**: 10 pra terminar. A primeira a chegar marca `status: 'finished'` e vira `winnerPlayerId`. Completar volta **gasta 1 nível de pneu** (pode eliminar se zerar) — mesma lógica de `damageTire()`, só que embutida em `completeLap()`.
+- **Voltas**: 10 pra terminar. A primeira a chegar marca `status: 'finished'` e vira `winnerPlayerId`. Completar volta **não** desconta pneu — o desgaste já vem das rolagens normais (ver abaixo); descontar de novo por volta seria contar o mesmo desgaste duas vezes.
 - Reparar pneu (+1 nível) e trocar de marca (reseta pro 10) são livres no app — o custo é físico, na mesa.
 
 Regras marcadas como ASSUNÇÃO nos comentários (ex: o consumo proporcional ao dado) foram deduzidas, não confirmadas pelo cartão oficial. Se o usuário trouxer o número real, ajuste a constante e apague a nota.
