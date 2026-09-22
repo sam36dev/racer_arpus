@@ -219,7 +219,7 @@ import {
       </div>
 
       <div class="bar-label mt-24"><span>🏁 Voltas</span><span class="bar-value">${player.laps}/${latestGame.totalLaps}</span></div>
-      <button class="secondary full-width btn-lap">+1 volta</button>
+      <button class="secondary full-width btn-lap">+1 volta (gasta 1 nivel de pneu)</button>
 
       ${player.lastCard ? `
         <div class="bar-label mt-24"><span>🎴 Ultima carta</span></div>
