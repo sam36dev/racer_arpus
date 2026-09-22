@@ -91,7 +91,8 @@ app.post(
 app.post(
   '/api/games/:gameId/players/:playerId/upgrade-turbo',
   wrap(async (req) => {
-    const p = await game.upgradeTurbo(req.params.gameId, req.params.playerId);
+    const delta = req.body.delta != null ? Number(req.body.delta) : 1;
+    const p = await game.upgradeTurbo(req.params.gameId, req.params.playerId, delta);
     return game.serializePlayer(p);
   })
 );

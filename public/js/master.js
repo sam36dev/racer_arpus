@@ -213,7 +213,10 @@ import {
 
       <div class="bar-label mt-24"><span>🌀 Turbo — posicao ${player.turboPosition} (d${player.turboDiceType})</span><span class="bar-value">${player.turbo.nextPosition != null ? `faltam ${player.turbo.nextPosition - player.turbo.position} p/ d${player.turbo.nextDice}` : 'maximo'}</span></div>
       <div class="bar-track"><div class="bar-fill" style="width:${player.turbo.percent}%; background:var(--purple);"></div></div>
-      <button class="secondary full-width btn-upgrade-turbo">Subir nivel de turbo</button>
+      <div class="btn-row">
+        <button class="secondary btn-upgrade-turbo">Subir turbo (+1)</button>
+        <button class="danger btn-downgrade-turbo">Diminuir turbo (-1)</button>
+      </div>
 
       <div class="bar-label mt-24"><span>🏁 Voltas</span><span class="bar-value">${player.laps}/${latestGame.totalLaps}</span></div>
       <button class="secondary full-width btn-lap">+1 volta</button>
@@ -279,7 +282,8 @@ import {
       div.querySelector('.fine-reason').value = '';
       return p;
     });
-    busyClick(div.querySelector('.btn-upgrade-turbo'), () => api(player.id, 'upgrade-turbo').catch(() => {}));
+    busyClick(div.querySelector('.btn-upgrade-turbo'), () => api(player.id, 'upgrade-turbo', { delta: 1 }).catch(() => {}));
+    busyClick(div.querySelector('.btn-downgrade-turbo'), () => api(player.id, 'upgrade-turbo', { delta: -1 }).catch(() => {}));
     busyClick(div.querySelector('.btn-lap'), () => api(player.id, 'complete-lap').catch(() => {}));
 
     const effectErrorEl = div.querySelector('.effect-error-mini');
