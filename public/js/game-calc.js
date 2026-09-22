@@ -35,7 +35,13 @@ window.GameCalc = (function () {
     },
   };
 
+  // Espelho de FUEL_CONSUMPTION_OVERRIDES + fuelConsumptionPerRoll em src/constants.js.
+  const FUEL_CONSUMPTION_OVERRIDES = {
+    4: 0.5,
+  };
+
   function fuelConsumptionPerRoll(diceType) {
+    if (FUEL_CONSUMPTION_OVERRIDES[diceType] != null) return FUEL_CONSUMPTION_OVERRIDES[diceType];
     return diceType / 6;
   }
 

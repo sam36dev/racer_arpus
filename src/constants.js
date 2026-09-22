@@ -6,10 +6,18 @@ const FUEL_MAX = 40; // unidades abstratas de combustivel por tanque cheio
 
 const FUEL_WARNING_ROLLS = 10; // a partir de quantas rolagens restantes mostrar aviso
 
-// ASSUNCAO: consumo de combustivel por rolagem escala proporcionalmente ao dado
-// (dado/6). Com FUEL_MAX=40 isso da 40 rolagens por tanque no d6, 30 no d8 e
-// 20 no d12; ajustar se vier um numero oficial diferente pra d8/d12/d4/d2.
+// CONFIRMADO pelo usuario: d4 gasta 0.5 de combustivel por rolagem (1 unidade a
+// cada 2 rolagens) - nao segue a formula proporcional abaixo.
+// ASSUNCAO pros demais dados: consumo escala proporcionalmente ao dado (dado/6).
+// Com FUEL_MAX=40 isso da 40 rolagens por tanque no d6, 30 no d8 e 20 no d12;
+// ajustar (ou adicionar em FUEL_CONSUMPTION_OVERRIDES) se vier numero oficial
+// diferente pro d2, d8 ou d12.
+const FUEL_CONSUMPTION_OVERRIDES = {
+  4: 0.5,
+};
+
 function fuelConsumptionPerRoll(diceType) {
+  if (FUEL_CONSUMPTION_OVERRIDES[diceType] != null) return FUEL_CONSUMPTION_OVERRIDES[diceType];
   return diceType / 6;
 }
 

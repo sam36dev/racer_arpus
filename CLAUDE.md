@@ -45,7 +45,7 @@ users/{username}        displayName, passwordHash, wins, racesPlayed,
 
 Os números de balanceamento ficam todos em [src/constants.js](src/constants.js) — mexa lá, não espalhado no código.
 
-- **Combustível**: tanque de 40. Consumo por rolagem = `dado/6`, ou seja 40 rolagens no d6, 30 no d8, 20 no d12. Tanque vazio **bloqueia** a rolagem. Abastecer é +1 por clique (não enche de uma vez).
+- **Combustível**: tanque de 40. Consumo por rolagem = `dado/6` (40 rolagens no d6, 30 no d8, 20 no d12) — **exceto d4, confirmado em 0,5** (2 rolagens = 1 unidade), via `FUEL_CONSUMPTION_OVERRIDES` em [src/constants.js](src/constants.js). Tanque vazio **bloqueia** a rolagem. Abastecer é +1 por clique (não enche de uma vez).
 - **Pneu**: trilha de nível 10→0 (as 10 bolinhas do cartão físico). A marca define de quantas em quantas rolagens cai um nível: Pirelli 20, Continental 25, Michelin 30. Nível 7-10 sem penalidade, 5-6 limita a d4, 1-4 limita a d2, **0 elimina o piloto** (bloqueia rolagem pra sempre).
 - **Turbo**: cada upgrade avança 1 posição; posição ≥8 vira d8, ≥12 vira d12.
 - **Pneu gasto sempre vence o turbo** — é isso que `effectiveDice()` faz. Um d12 com pneu nível 3 rola d2.
