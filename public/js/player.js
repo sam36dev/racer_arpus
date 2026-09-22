@@ -50,11 +50,6 @@ import {
     btnRoll: document.getElementById('btn-roll'),
     rollError: document.getElementById('roll-error'),
 
-    cardReveal: document.getElementById('card-reveal'),
-    cardIcon: document.getElementById('card-icon'),
-    cardName: document.getElementById('card-name'),
-    cardDescription: document.getElementById('card-description'),
-
     watchingCard: document.getElementById('watching-card'),
     watchingStatus: document.getElementById('watching-status'),
     swapPopup: document.getElementById('swap-popup'),
@@ -112,7 +107,6 @@ import {
   let latestFines = [];
   let latestPlayersRaw = [];
   const seenRollAt = {}; // playerId -> timestamp da ultima rolagem ja animada
-  let seenCardAt = null; // timestamp da ultima carta da sorte ja animada neste jogador
 
   function render() {
     if (!latestGame || !latestPlayerRaw) return;
@@ -215,18 +209,6 @@ import {
       el.diceResult.style.display = 'block';
       el.diceResult.textContent = player.lastRoll.value;
       popAnimate(el.diceResult);
-    }
-
-    // Carta da sorte ativada pelo mestre pra este jogador
-    if (player.lastCard) {
-      el.cardReveal.style.display = 'block';
-      el.cardIcon.textContent = player.lastCard.icon;
-      el.cardName.textContent = player.lastCard.name;
-      el.cardDescription.textContent = player.lastCard.description;
-      if (seenCardAt !== player.lastCard.at) {
-        seenCardAt = player.lastCard.at;
-        popAnimate(el.cardReveal);
-      }
     }
 
     // Outros pilotos: mostra o ultimo numero que cada um tirou

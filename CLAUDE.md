@@ -66,7 +66,9 @@ O baralho é físico — o mestre tira a carta na mesa e ativa o efeito pelo pai
 - `statusOn`: liga um **efeito contínuo** (ver abaixo).
 - `watchOpponent`: liga o efeito contínuo `watching`, mas precisa de um **alvo** escolhido na hora (outro jogador) — ver abaixo.
 
-Cada ativação grava `lastCard` no jogador (o front reage em tempo real, com pop de revelação igual ao dado) e um registro em `luckCards/{id}` pro histórico no painel do mestre.
+Cada ativação grava `lastCard` no jogador (backend, sem uso na UI hoje — ver nota abaixo) e um registro em `luckCards/{id}` pro histórico no painel do mestre.
+
+⚠️ `lastCard` **não é exibido** em nenhuma tela de propósito: mostrar "última carta" de forma permanente dava a impressão de efeito ainda ativo mesmo depois dele já ter sido removido (ex: jogador sem Kit Gás continuava aparecendo com "Kit Gás" na tela). O que reflete o estado atual de verdade é só `activeEffects` (badges "⚡ Efeitos ativos"); histórico de tudo que já rolou fica no painel "Histórico" do topo (`luckCardLog`/`luckCards` collection), que não finge ser estado atual.
 
 ### Efeitos contínuos (`ACTIVE_EFFECTS`)
 

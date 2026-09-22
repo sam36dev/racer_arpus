@@ -302,15 +302,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   background: linear-gradient(160deg, #241a3d, var(--bg-card));
 }
 
-.card-mini-reveal {
-  background: var(--bg-card-2);
-  border: 1px solid var(--purple);
-  border-radius: 10px;
-  padding: 10px 12px;
-  font-size: 0.85rem;
-  margin-top: 8px;
-}
-
 .luck-log-list {
   max-height: 180px;
   overflow-y: auto;

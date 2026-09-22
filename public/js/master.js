@@ -269,11 +269,6 @@ import {
       <div class="bar-label mt-24"><span>🏁 Voltas</span><span class="bar-value">${player.laps}/${latestGame.totalLaps}</span></div>
       <button class="secondary full-width btn-lap">+1 volta</button>
 
-      ${player.lastCard ? `
-        <div class="bar-label mt-24"><span>🎴 Ultima carta</span></div>
-        <div class="card-mini-reveal">${player.lastCard.icon} <strong>${player.lastCard.name}</strong> — ${player.lastCard.description}</div>
-      ` : ''}
-
       ${player.activeEffects.length ? `
         <div class="bar-label mt-24"><span>⚡ Efeitos ativos</span></div>
         ${player.activeEffects.map((eff) => `
