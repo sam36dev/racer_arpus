@@ -196,6 +196,34 @@ async function updateWatchers(gameId, rolledPlayerId, rollDiceType, value) {
   );
 }
 
+// Sincroniza quem esta observando `targetPlayerId` (carta Transmissao Sequencial) sempre que
+// o dado EFETIVO dele pode ter mudado por algo que NAO e uma rolagem (penalidade/reparo de
+// pneu, troca de marca, subir/descer turbo, ligar/desligar/transferir Kit Gas ou D12
+// Temporario). Rolagem em si ja e coberta por updateWatchers() dentro de rollDice(). So
+// reinicia a contagem (zera seenValues, tira o aviso) se o dado realmente mudou desde a
+// ultima vez sincronizada - chamar aqui sempre e barato e inofensivo quando nao mudou nada.
+async function syncWatchersDiceType(gameId, targetPlayerId) {
+  const snap = await gameRef(gameId)
+    .collection('players')
+    .where('watching.targetPlayerId', '==', targetPlayerId)
+    .get();
+  if (snap.empty) return;
+
+  const target = await getPlayer(gameId, targetPlayerId);
+  const forced = target.diceLock != null ? target.diceLock : target.d12TempActive ? 12 : null;
+  const currentDiceType = effectiveDice(target.diceType, target.tireLevel, forced);
+
+  await Promise.all(
+    snap.docs.map(async (doc) => {
+      const w = doc.data().watching;
+      if (!w || w.targetDiceType === currentDiceType) return;
+      await doc.ref.update({
+        watching: { ...w, targetDiceType: currentDiceType, seenValues: [], triggered: false },
+      });
+    })
+  );
+}
+
 // Abastecer enche aos poucos: +1 unidade de combustivel por vez (nao enche o tanque de uma vez).
 // `amount` so e diferente de 1 quando chamado por uma carta da sorte (pode ser negativo).
 async function refuel(gameId, playerId, amount = 1) {
@@ -219,6 +247,7 @@ async function repairTire(gameId, playerId, amount = 1) {
     const newLevel = Math.min(TIRE_LEVEL_MAX, snap.data().tireLevel + amount);
     t.update(ref, { tireLevel: newLevel });
   });
+  await syncWatchersDiceType(gameId, playerId);
   return getPlayer(gameId, playerId);
 }
 
@@ -235,6 +264,7 @@ async function damageTire(gameId, playerId, amount = 1) {
     if (newLevel <= 0) updates.eliminated = true;
     t.update(ref, updates);
   });
+  await syncWatchersDiceType(gameId, playerId);
   return getPlayer(gameId, playerId);
 }
 
@@ -247,6 +277,7 @@ async function changeTireBrand(gameId, playerId, brand) {
     tireLevel: TIRE_LEVEL_MAX,
     tireRollsUsed: 0,
   });
+  await syncWatchersDiceType(gameId, playerId);
   return getPlayer(gameId, playerId);
 }
 
@@ -267,6 +298,7 @@ async function upgradeTurbo(gameId, playerId, delta = 1) {
     await achievements.checkAutoAchievements(userId, 'reached_d12');
   }
 
+  await syncWatchersDiceType(gameId, playerId);
   return getPlayer(gameId, playerId);
 }
 
@@ -419,6 +451,7 @@ async function activateCard(gameId, playerId, cardId, targetPlayerId) {
     }
     case 'statusOn':
       await playerRef(gameId, playerId).update({ [effect.field]: effect.value });
+      await syncWatchersDiceType(gameId, playerId);
       break;
     case 'none':
     default:
@@ -443,6 +476,7 @@ async function clearEffect(gameId, playerId, field) {
   if (!meta) throw new GameError('INVALID_EFFECT', 'Efeito invalido');
   await getPlayer(gameId, playerId); // valida que o jogador existe
   await playerRef(gameId, playerId).update({ [field]: meta.default });
+  await syncWatchersDiceType(gameId, playerId);
   return getPlayer(gameId, playerId);
 }
 
@@ -469,6 +503,9 @@ async function transferEffect(gameId, fromPlayerId, toPlayerId, field) {
 
   const card = luckCards.findByEffectField(field);
   if (card) await recordCardActivation(gameId, toPlayerId, card);
+
+  await syncWatchersDiceType(gameId, fromPlayerId);
+  await syncWatchersDiceType(gameId, toPlayerId);
 
   return { from: await getPlayer(gameId, fromPlayerId), to: await getPlayer(gameId, toPlayerId) };
 }

@@ -75,15 +75,19 @@ import {
   // render, preservando a selecao atual do mestre quando o valor escolhido ainda existir.
   const luckCardSelect = document.getElementById('luck-activate-card');
   const luckPlayerSelect = document.getElementById('luck-activate-player');
+  const luckPlayerLabel = document.getElementById('luck-activate-player-label');
   const luckTargetWrap = document.getElementById('luck-activate-target-wrap');
   const luckTargetSelect = document.getElementById('luck-activate-target');
+  const luckTargetLabel = document.getElementById('luck-activate-target-label');
   const luckActivateError = document.getElementById('luck-activate-error');
   const btnActivateLuckCard = document.getElementById('btn-activate-luck-card');
 
-  function setSelectOptions(select, optionsHtml) {
+  // Sempre com um placeholder vazio - nunca deixa um jogador "pre-selecionado" sem o mestre
+  // escolher de proposito (evita aplicar em alguem por engano so porque sobrou de uma acao anterior).
+  function setSelectOptions(select, optionsHtml, placeholder) {
     const previousValue = select.value;
-    select.innerHTML = optionsHtml;
-    if ([...select.options].some((o) => o.value === previousValue)) {
+    select.innerHTML = `<option value="">${placeholder}</option>${optionsHtml}`;
+    if (previousValue && [...select.options].some((o) => o.value === previousValue)) {
       select.value = previousValue;
     }
   }
@@ -95,13 +99,23 @@ import {
       latestPlayersRaw
         .filter((p) => p.id !== chosenPlayerId)
         .map((p) => `<option value="${p.id}">${p.name}</option>`)
-        .join('')
+        .join(''),
+      '-- escolha o oponente --'
     );
+  }
+
+  // Transmissao Sequencial inverte o papel de "Jogador": nao e quem sofre o efeito, e quem
+  // RECEBE a carta e passa a observar o oponente escolhido. Rotulo muda pra deixar isso obvio.
+  function syncLuckLabels() {
+    const needsTarget = luckCardSelect.selectedOptions[0]?.dataset.needsTarget;
+    luckPlayerLabel.textContent = needsTarget ? 'Quem recebe a carta (vai observar)' : 'Jogador';
+    if (luckTargetLabel) luckTargetLabel.textContent = 'Quem vai ser observado (oponente)';
   }
 
   function syncLuckTargetVisibility() {
     const needsTarget = luckCardSelect.selectedOptions[0]?.dataset.needsTarget;
     luckTargetWrap.style.display = needsTarget ? 'block' : 'none';
+    syncLuckLabels();
     if (needsTarget) syncLuckTargetOptions();
   }
 
@@ -113,9 +127,14 @@ import {
           (c) =>
             `<option value="${c.id}" data-needs-target="${c.effect.type === 'watchOpponent' ? '1' : ''}">${c.icon} ${c.name}</option>`
         )
-        .join('')
+        .join(''),
+      '-- escolha a carta --'
     );
-    setSelectOptions(luckPlayerSelect, latestPlayersRaw.map((p) => `<option value="${p.id}">${p.name}</option>`).join(''));
+    setSelectOptions(
+      luckPlayerSelect,
+      latestPlayersRaw.map((p) => `<option value="${p.id}">${p.name}</option>`).join(''),
+      '-- escolha o jogador --'
+    );
     syncLuckTargetVisibility();
     btnActivateLuckCard.disabled = !luckCatalog.length || !latestPlayersRaw.length;
   }
@@ -143,6 +162,12 @@ import {
 
     try {
       await api(playerId, 'activate-card', { cardId, targetPlayerId: needsTarget ? targetPlayerId : undefined });
+      // Reseta tudo depois de ativar com sucesso - proxima ativacao exige escolha explicita
+      // de novo, pra nao aplicar em alguem por engano com selecao "grudada" da vez anterior.
+      luckCardSelect.value = '';
+      luckPlayerSelect.value = '';
+      luckTargetSelect.value = '';
+      syncLuckTargetVisibility();
     } catch (err) {
       luckActivateError.style.display = 'block';
       luckActivateError.textContent = err.message;
