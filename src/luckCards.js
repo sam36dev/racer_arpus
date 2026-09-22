@@ -1,8 +1,7 @@
 'use strict';
 
-// PLACEHOLDER: catalogo de exemplo ate o usuario mandar a lista real das cartas
-// da sorte do baralho fisico. Estrutura e efeitos ja estao prontos - troque so
-// os itens de CATALOG quando a lista oficial chegar.
+// Catalogo das cartas da sorte do baralho fisico, mandadas pelo usuario aos poucos.
+// So tem aqui o que ja foi confirmado - nao inventar carta nova sem o usuario mandar.
 //
 // effect.type define o que activateCard() faz automaticamente no jogador:
 //   'fuel'         -> soma effect.value ao combustivel atual (negativo desconta)
@@ -20,69 +19,6 @@
 //   'watchOpponent'-> liga o efeito 'watching' escolhendo um ALVO na hora de ativar (o mestre
 //                     manda targetPlayerId no POST /activate-card). Ver ACTIVE_EFFECTS.watching.
 const CATALOG = [
-  {
-    id: 'posto-gratis',
-    name: 'Posto Gratis',
-    description: 'Um posto na beira da pista enche seu tanque. Ganhe 5 de combustivel.',
-    icon: '⛽',
-    effect: { type: 'fuel', value: 5 },
-  },
-  {
-    id: 'furo-no-tanque',
-    name: 'Furo no Tanque',
-    description: 'Um furo bobo custou combustivel. Perca 5 de combustivel.',
-    icon: '🛢️',
-    effect: { type: 'fuel', value: -5 },
-  },
-  {
-    id: 'pit-stop-gratis',
-    name: 'Pit Stop Gratis',
-    description: 'A equipe cuidou do seu carro de graca. Suba 2 niveis de pneu.',
-    icon: '🔧',
-    effect: { type: 'tire', value: 2 },
-  },
-  {
-    id: 'pneu-furado',
-    name: 'Pneu Furado',
-    description: 'Um prego na pista furou seu pneu. Perca 2 niveis de pneu.',
-    icon: '💥',
-    effect: { type: 'tire', value: -2 },
-  },
-  {
-    id: 'nitro',
-    name: 'Nitro',
-    description: 'Explosao de velocidade! Avance 2 posicoes na trilha de turbo.',
-    icon: '🚀',
-    effect: { type: 'turbo', value: 2 },
-  },
-  {
-    id: 'motor-engasgado',
-    name: 'Motor Engasgado',
-    description: 'O motor falhou na hora errada. Volte 1 posicao na trilha de turbo.',
-    icon: '🐌',
-    effect: { type: 'turbo', value: -1 },
-  },
-  {
-    id: 'atalho-na-pista',
-    name: 'Atalho na Pista',
-    description: 'Voce achou um atalho e cortou caminho. Ganhe 1 volta de graca.',
-    icon: '🗺️',
-    effect: { type: 'laps', value: 1 },
-  },
-  {
-    id: 'radar-flagrou',
-    name: 'Radar Flagrou Voce',
-    description: 'Excesso de velocidade registrado. Multa automatica de R$ 500.',
-    icon: '🚔',
-    effect: { type: 'fine', value: 500 },
-  },
-  {
-    id: 'ficha-misteriosa',
-    name: 'Ficha Misteriosa',
-    description: 'Efeito especial resolvido na mesa pelo mestre. Sem mudanca automatica nos stats.',
-    icon: '❓',
-    effect: { type: 'none' },
-  },
   {
     id: 'pneu-remold',
     name: 'Pneu Remold',

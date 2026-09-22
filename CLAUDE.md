@@ -56,7 +56,7 @@ Regras marcadas como ASSUNÇÃO nos comentários (ex: o consumo proporcional ao 
 
 ## Cartas da sorte
 
-O baralho é físico — o mestre tira a carta na mesa e ativa o efeito pelo painel do mestre, pra cada jogador. Catálogo em [src/luckCards.js](src/luckCards.js) (hoje **placeholder**, sendo preenchido aos poucos conforme o usuário manda nome + efeito de cada carta real). Cada carta tem `effect.type`, interpretado por `activateCard()` em [src/gameLogic.js](src/gameLogic.js):
+O baralho é físico — o mestre tira a carta na mesa e ativa o efeito pelo painel do mestre, pra cada jogador. Catálogo em [src/luckCards.js](src/luckCards.js), **só com cartas reais** que o usuário mandou (nome + efeito) — nunca inventar carta nova aqui, mesmo pra "preencher" o catálogo; se faltar mapear um efeito, perguntar antes de adicionar. Cada carta tem `effect.type`, interpretado por `activateCard()` em [src/gameLogic.js](src/gameLogic.js):
 
 - `fuel` / `tire` / `turbo` / `laps`: soma `effect.value` (pode ser negativo) reaproveitando `refuel`/`repairTire`+`damageTire`/`upgradeTurbo`/`completeLap` — essas funções agora aceitam um delta opcional (default 1) só por causa disso; as rotas HTTP normais continuam chamando sem delta.
 - `tireBrand`: troca a marca de graça (`effect.value` = nome da marca).
@@ -80,7 +80,7 @@ Campos hoje:
 
 Desligar manualmente é sempre `POST .../clear-effect { field }` (volta ao default). Transferir é `POST .../transfer-effect { toPlayerId, field }` — só funciona se `transferable: true` no registro.
 
-Quando a lista real de cartas chegar, é só ir completando/ajustando `CATALOG` em [src/luckCards.js](src/luckCards.js) — o motor de efeitos (instantâneos e contínuos) já está pronto; efeitos novos que não se encaixem nos tipos acima precisam de um campo novo em `ACTIVE_EFFECTS` + lógica dedicada em `rollDice()` (como os últimos quatro acima).
+Cartas novas o usuário manda aos poucos (nome + efeito); adiciona em `CATALOG` só depois que ele mandar. O motor de efeitos (instantâneos e contínuos) já está pronto pra maioria dos casos; efeito novo que não se encaixe nos tipos acima precisa de um campo novo em `ACTIVE_EFFECTS` + lógica dedicada em `rollDice()` (como os últimos quatro acima).
 
 ## ⚠️ game-calc.js espelha o backend
 
