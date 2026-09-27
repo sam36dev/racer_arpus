@@ -91,6 +91,10 @@ function effectiveDice(turboDice, tireLevel, diceLock) {
 
 const TOTAL_LAPS = 10;
 
+// Senha que o mestre digita pra eliminar um piloto na mao (evita clique acidental).
+// Checada so no backend - nao espelhar em game-calc.js.
+const ELIMINATE_PIN = '4755';
+
 module.exports = {
   FUEL_MAX,
   FUEL_WARNING_ROLLS,
@@ -99,6 +103,7 @@ module.exports = {
   TIRE_UPGRADE_ORDER,
   TURBO_DICE_THRESHOLDS,
   TOTAL_LAPS,
+  ELIMINATE_PIN,
   fuelConsumptionPerRoll,
   diceForTurboPosition,
   turboProgress,

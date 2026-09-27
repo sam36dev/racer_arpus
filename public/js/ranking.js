@@ -18,7 +18,6 @@
             <td>${r.displayName}</td>
             <td>${r.wins}</td>
             <td>${r.racesPlayed}</td>
-            <td>${r.lapsCompleted}</td>
           </tr>`;
         })
         .join('');

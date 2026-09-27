@@ -47,7 +47,6 @@ async function signup(rawUsername, password, confirmPassword) {
     wins: 0,
     racesPlayed: 0,
     lapsCompleted: 0,
-    timesEliminated: 0,
     finesReceived: 0,
     createdAt: new Date().toISOString(),
   });
@@ -98,7 +97,6 @@ async function listRanking() {
       displayName: data.displayName,
       wins: data.wins || 0,
       racesPlayed: data.racesPlayed || 0,
-      lapsCompleted: data.lapsCompleted || 0,
     };
   });
 }

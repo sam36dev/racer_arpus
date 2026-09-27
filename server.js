@@ -81,6 +81,14 @@ app.post(
 );
 
 app.post(
+  '/api/games/:gameId/players/:playerId/eliminate',
+  wrap(async (req) => {
+    const p = await game.eliminatePlayer(req.params.gameId, req.params.playerId, req.body.pin);
+    return game.serializePlayer(p);
+  })
+);
+
+app.post(
   '/api/games/:gameId/players/:playerId/change-tire-brand',
   wrap(async (req) => {
     const p = await game.changeTireBrand(req.params.gameId, req.params.playerId, req.body.brand);

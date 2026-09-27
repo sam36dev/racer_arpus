@@ -26,7 +26,7 @@ Três telas:
 games/{gameId}          name, status (lobby|finished), totalLaps, winnerPlayerId
   players/{playerId}    name, color, userId, diceType, turboPosition,
                         fuelCurrent, tireBrand, tireLevel, tireRollsUsed,
-                        eliminated, laps, lastRoll { value, diceType, at },
+                        eliminated, laps, finesInRace, reachedD2, refuelsInRace, lastRoll { value, diceType, at },
                         lastCard { cardId, name, icon, description, at },
                         + campos de efeitos continuos das cartas da sorte, so presentes
                         quando ativos: tireWearMultiplier, diceLock, tanqueFuradoActive,
@@ -35,8 +35,9 @@ games/{gameId}          name, status (lobby|finished), totalLaps, winnerPlayerId
   fines/{fineId}        playerId, amount, reason
   luckCards/{logId}     playerId, cardId, name, icon, description, appliedAt
 users/{username}        displayName, passwordHash, wins, racesPlayed,
-                        lapsCompleted, timesEliminated, finesReceived
+                        lapsCompleted, finesReceived
   achievements/{id}     unlockedAt, grantedBy ('auto' ou username do admin)
+trophyHolders/{achievementId}  username, since   (dono atual de troféu transferível)
 ```
 
 `gameId` e `playerId` são nanoid(8); o id do usuário **é** o username normalizado (minúsculo).
@@ -50,6 +51,8 @@ Os números de balanceamento ficam todos em [src/constants.js](src/constants.js)
 - **Turbo**: cada upgrade avança 1 posição; posição ≥8 vira d8, ≥12 vira d12.
 - **Pneu gasto sempre vence o turbo** — é isso que `effectiveDice()` faz. Um d12 com pneu nível 3 rola d2.
 - **Voltas**: 10 pra terminar. A primeira a chegar marca `status: 'finished'` e vira `winnerPlayerId`. Completar volta **não** desconta pneu — o desgaste já vem das rolagens normais (ver abaixo); descontar de novo por volta seria contar o mesmo desgaste duas vezes.
+- **Último sobrevivente**: se todos os outros pilotos forem eliminados (corrida com 2+ jogadores), o que sobrou vence na hora — `checkLastStanding()` marca `finished`/`winnerPlayerId` e credita a vitória igual a completar as voltas (`awardWin()`).
+- **Eliminar piloto** (mestre, botão "🚫 Eliminar piloto"): pra quem desiste/sai da mesa — `eliminatePlayer()` exige confirmação + senha (`ELIMINATE_PIN` em [src/constants.js](src/constants.js), checada só no backend), marca `eliminated` e dispara a mesma checagem de último sobrevivente.
 - Reparar pneu (+1 nível) e trocar de marca (reseta pro 10) são livres no app — o custo é físico, na mesa.
 - **Multas**: só o mestre aplica (`applyFine`). Pagamento é físico, então o mestre também quita — `removeFine` tira uma multa específica (corrigir erro) e `clearFines` zera todas as de um jogador de uma vez (depois que ele paga na mesa).
 
@@ -98,6 +101,9 @@ Cartas novas o usuário manda aos poucos (nome + efeito); adiciona em `CATALOG` 
 - Login é usuário/senha sem email (app entre amigos): bcrypt + JWT de 90 dias, em [src/auth.js](src/auth.js). Token e username ficam no `localStorage` (`racer-token`, `racer-username`).
 - Jogar sem conta funciona (`optionalAuth`), mas aí nada entra em ranking nem em conquistas — quem não tem `userId` não gera stats.
 - Conquistas em [src/achievements.js](src/achievements.js): `auto` dispara por evento (`checkAutoAchievements(username, code)` chamado dentro do gameLogic) e `manual` só o admin concede. O catálogo atual é **placeholder** até chegar a lista real de troféus.
+- Ranking mostra só **corridas jogadas** e **vitórias** — não existe estatística de derrota/eliminação de propósito (pedido do usuário). `lapsCompleted`/`finesReceived` continuam gravados na conta (sem uso hoje, reservados pra futuras conquistas).
+- Pé de Chumbo conta multas **por corrida** em `players/{id}.finesInRace` (não pela coleção `fines`, que o mestre apaga quando o piloto paga). `removeFine` (engano) desconta, `clearFines` (pagamento) não. Checado em `onRaceFinished()`.
+- **Lenda da Mesa** é o único troféu `type: 'transferable'`: só um dono por vez, quem tem mais vitórias (mínimo 3). Empate não tira do dono atual. `updateLendaDaMesa()` roda depois de cada vitória (`awardWin`), apaga o troféu do dono antigo e grava no novo; o dono atual fica em `trophyHolders/lenda-da-mesa`. Admin não concede (`grantManual` só aceita `manual`).
 - Admin = username listado em `ADMIN_USERNAMES` no `.env`.
 
 ## Rodar

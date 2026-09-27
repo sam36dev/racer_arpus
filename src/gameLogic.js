@@ -8,12 +8,14 @@ const {
   TIRE_LEVEL_MAX,
   TIRE_BRANDS,
   TOTAL_LAPS,
+  ELIMINATE_PIN,
   fuelConsumptionPerRoll,
   diceForTurboPosition,
   turboProgress,
   tireDiceOverride,
   effectiveDice,
 } = require('./constants');
+const { FieldValue } = require('firebase-admin/firestore');
 const users = require('./users');
 const achievements = require('./achievements');
 const luckCards = require('./luckCards');
@@ -149,6 +151,9 @@ async function rollDice(gameId, playerId) {
       lastRoll: { value, diceType: rollDiceType, at: Date.now() },
     };
 
+    // Marca que o pneu ja chegou a limitar o dado a d2 nesta corrida (trofeu Na Raca).
+    if (tireDiceOverride(newTireLevel) === 2) updates.reachedD2 = true;
+
     // 'D12 Temporario': tirou 12 -> efeito acaba. So desliga a flag; o turbo do jogador
     // (turboPosition/diceType) nunca foi mexido, entao ele so volta a rolar com o dado
     // real dele (ex: d8), sem perder progresso nenhum.
@@ -161,8 +166,8 @@ async function rollDice(gameId, playerId) {
     return { value, diceType: rollDiceType, userId: player.userId, justEliminated: eliminated && !player.eliminated };
   });
 
-  if (result.justEliminated && result.userId) {
-    await users.incrementStats(result.userId, { timesEliminated: 1 });
+  if (result.justEliminated) {
+    await checkLastStanding(gameId);
   }
 
   // 'Transmissao Sequencial': atualiza quem estiver observando este jogador (fora da
@@ -225,17 +230,33 @@ async function syncWatchersDiceType(gameId, targetPlayerId) {
 }
 
 // Abastecer enche aos poucos: +1 unidade de combustivel por vez (nao enche o tanque de uma vez).
-// `amount` so e diferente de 1 quando chamado por uma carta da sorte (pode ser negativo).
-async function refuel(gameId, playerId, amount = 1) {
+// `amount` so vem preenchido quando chamado por uma carta da sorte (pode ser negativo).
+async function refuel(gameId, playerId, amount) {
+  const isPumpClick = amount === undefined; // clique normal no "Abastecer +1", nao carta
+  const delta = isPumpClick ? 1 : amount;
   const ref = playerRef(gameId, playerId);
-  await db.runTransaction(async (t) => {
+  const { userId, refuelsInRace } = await db.runTransaction(async (t) => {
     const snap = await t.get(ref);
     if (!snap.exists) throw new GameError('PLAYER_NOT_FOUND', 'Jogador nao encontrado');
-    const newFuel = Math.min(FUEL_MAX, Math.max(0, snap.data().fuelCurrent + amount));
-    t.update(ref, { fuelCurrent: newFuel });
+    const player = snap.data();
+    const newFuel = Math.min(FUEL_MAX, Math.max(0, player.fuelCurrent + delta));
+    const updates = { fuelCurrent: newFuel };
+    // Contador por corrida pro trofeu Frentista - so clique que realmente colocou combustivel
+    // (tanque cheio nao conta, carta da sorte nao conta).
+    let refuels = player.refuelsInRace || 0;
+    if (isPumpClick && newFuel > player.fuelCurrent) {
+      refuels += 1;
+      updates.refuelsInRace = refuels;
+    }
+    t.update(ref, updates);
+    return { userId: player.userId, refuelsInRace: refuels };
   });
+  if (userId && refuelsInRace >= REFUELS_TROPHY_MIN) {
+    await achievements.checkAutoAchievements(userId, 'refuels_60_in_race');
+  }
   return getPlayer(gameId, playerId);
 }
+const REFUELS_TROPHY_MIN = 60;
 
 // Reparo/manutencao: sobe o nivel do pneu (ate o maximo), sem mexer na marca
 // nem na contagem de rolagens ate o proximo desgaste. `amount` > 1 so vem de carta da sorte.
@@ -255,16 +276,41 @@ async function repairTire(gameId, playerId, amount = 1) {
 // desce o nivel do pneu. Se chegar a 0, elimina o jogador da corrida igual ao desgaste normal.
 async function damageTire(gameId, playerId, amount = 1) {
   const ref = playerRef(gameId, playerId);
-  await db.runTransaction(async (t) => {
+  const justEliminated = await db.runTransaction(async (t) => {
     const snap = await t.get(ref);
     if (!snap.exists) throw new GameError('PLAYER_NOT_FOUND', 'Jogador nao encontrado');
     const player = snap.data();
     const newLevel = Math.max(0, player.tireLevel - amount);
     const updates = { tireLevel: newLevel };
     if (newLevel <= 0) updates.eliminated = true;
+    if (tireDiceOverride(newLevel) === 2) updates.reachedD2 = true;
     t.update(ref, updates);
+    return newLevel <= 0 && !player.eliminated;
   });
+  if (justEliminated) {
+    await checkLastStanding(gameId);
+  }
   await syncWatchersDiceType(gameId, playerId);
+  return getPlayer(gameId, playerId);
+}
+
+// Mestre elimina o piloto na mao (desistiu, saiu da mesa). Sem isso a corrida nunca fecha
+// pelo ultimo sobrevivente, ja que quem saiu continuaria contando como vivo.
+async function eliminatePlayer(gameId, playerId, pin) {
+  if (String(pin || '').trim() !== ELIMINATE_PIN) {
+    throw new GameError('INVALID_PIN', 'Senha incorreta - piloto nao foi eliminado');
+  }
+  const ref = playerRef(gameId, playerId);
+  const justEliminated = await db.runTransaction(async (t) => {
+    const snap = await t.get(ref);
+    if (!snap.exists) throw new GameError('PLAYER_NOT_FOUND', 'Jogador nao encontrado');
+    const player = snap.data();
+    if (!player.eliminated) t.update(ref, { eliminated: true });
+    return !player.eliminated;
+  });
+  if (justEliminated) {
+    await checkLastStanding(gameId);
+  }
   return getPlayer(gameId, playerId);
 }
 
@@ -309,7 +355,7 @@ async function completeLap(gameId, playerId, delta = 1) {
   const pRef = playerRef(gameId, playerId);
   const gRef = gameRef(gameId);
 
-  const { userId, won, eliminated } = await db.runTransaction(async (t) => {
+  const { userId, won, eliminated, reachedD2 } = await db.runTransaction(async (t) => {
     const [playerSnap, gameSnap] = await Promise.all([t.get(pRef), t.get(gRef)]);
     if (!playerSnap.exists) throw new GameError('PLAYER_NOT_FOUND', 'Jogador nao encontrado');
     if (!gameSnap.exists) throw new GameError('GAME_NOT_FOUND', 'Jogo nao encontrado');
@@ -325,20 +371,66 @@ async function completeLap(gameId, playerId, delta = 1) {
       won = true;
     }
 
-    return { userId: player.userId, won, eliminated: !!player.eliminated };
+    return { userId: player.userId, won, eliminated: !!player.eliminated, reachedD2: !!player.reachedD2 };
   });
 
   if (userId) {
     await users.incrementStats(userId, { lapsCompleted: delta });
     if (won) {
-      await users.incrementStats(userId, { wins: 1 });
-      const user = await users.getUser(userId);
-      if (user.wins === 1) await achievements.checkAutoAchievements(userId, 'first_win');
-      if (!eliminated) await achievements.checkAutoAchievements(userId, 'finish_no_elimination');
+      await awardWin(userId, eliminated);
+      await achievements.checkAutoAchievements(userId, 'win_by_laps'); // ultimo sobrevivente nao conta
+      if (reachedD2) await achievements.checkAutoAchievements(userId, 'win_by_laps_after_d2');
     }
   }
+  if (won) await onRaceFinished(gameId);
 
   return { player: await getPlayer(gameId, playerId), game: await getGame(gameId) };
+}
+
+// Credita a vitoria na conta do usuario (ranking + conquistas). Usado tanto por quem
+// completa as voltas quanto por quem sobra sozinho depois que todos os outros foram eliminados.
+async function awardWin(userId, eliminated) {
+  await users.incrementStats(userId, { wins: 1 });
+  const user = await users.getUser(userId);
+  if (user.wins === 1) await achievements.checkAutoAchievements(userId, 'first_win');
+  if (!eliminated) await achievements.checkAutoAchievements(userId, 'finish_no_elimination');
+  await achievements.updateLendaDaMesa(userId);
+}
+
+// Se todos os outros foram eliminados, o ultimo piloto vivo vence a corrida automaticamente.
+// So vale com 2+ jogadores (corrida solo nao termina assim) e se a corrida ainda nao acabou.
+async function checkLastStanding(gameId) {
+  const gRef = gameRef(gameId);
+  const winner = await db.runTransaction(async (t) => {
+    const gameSnap = await t.get(gRef);
+    if (!gameSnap.exists || gameSnap.data().status === 'finished') return null;
+
+    const playersSnap = await t.get(gRef.collection('players'));
+    if (playersSnap.size < 2) return null;
+    const alive = playersSnap.docs.filter((doc) => !doc.data().eliminated);
+    if (alive.length !== 1) return null;
+
+    t.update(gRef, { status: 'finished', winnerPlayerId: alive[0].id });
+    return alive[0].data();
+  });
+
+  if (winner && winner.userId) {
+    await awardWin(winner.userId, false);
+    await achievements.checkAutoAchievements(winner.userId, 'win_last_standing');
+  }
+  if (winner) await onRaceFinished(gameId);
+}
+
+// Trofeus que dependem do estado final da corrida inteira, checados uma vez quando ela acaba.
+const FINES_TROPHY_MIN = 10;
+async function onRaceFinished(gameId) {
+  const players = await listPlayers(gameId);
+  for (const p of players) {
+    if (!p.userId || p.eliminated) continue;
+    if ((p.finesInRace || 0) >= FINES_TROPHY_MIN) {
+      await achievements.checkAutoAchievements(p.userId, 'fines_10_no_elimination');
+    }
+  }
 }
 
 async function applyFine(gameId, playerId, amount, reason) {
@@ -351,12 +443,12 @@ async function applyFine(gameId, playerId, amount, reason) {
     createdAt: new Date().toISOString(),
   });
 
+  // Contador por corrida no proprio jogador (pro trofeu Pe de Chumbo). Nao da pra contar pela
+  // colecao fines, porque o mestre apaga as multas quando o piloto paga na mesa (clearFines).
+  await playerRef(gameId, playerId).update({ finesInRace: FieldValue.increment(1) });
+
   if (player.userId) {
     await users.incrementStats(player.userId, { finesReceived: 1 });
-    const user = await users.getUser(player.userId);
-    if (user.finesReceived >= 5) {
-      await achievements.checkAutoAchievements(player.userId, 'fines_received_5');
-    }
   }
 
   return listFines(gameId);
@@ -378,8 +470,16 @@ async function clearFines(gameId, playerId) {
 }
 
 // Remove uma multa especifica (corrige valor/motivo errado aplicado por engano).
+// Diferente de clearFines (pagamento), aqui a multa foi aplicada por engano - entao ela
+// tambem sai da contagem do trofeu Pe de Chumbo.
 async function removeFine(gameId, fineId) {
-  await finesCol(gameId).doc(fineId).delete();
+  const fineRef = finesCol(gameId).doc(fineId);
+  const fineSnap = await fineRef.get();
+  if (!fineSnap.exists) return listFines(gameId);
+  await fineRef.delete();
+  await playerRef(gameId, fineSnap.data().playerId)
+    .update({ finesInRace: FieldValue.increment(-1) })
+    .catch(() => {}); // jogador pode nao existir mais
   return listFines(gameId);
 }
 
@@ -611,6 +711,7 @@ module.exports = {
   refuel,
   repairTire,
   damageTire,
+  eliminatePlayer,
   changeTireBrand,
   upgradeTurbo,
   completeLap,

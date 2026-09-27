@@ -258,6 +258,7 @@ import {
       </div>
       <button class="danger full-width btn-apply-fine">Aplicar multa</button>
       ${fines.length ? '<button class="secondary full-width btn-clear-fines">Quitar todas as multas</button>' : ''}
+      ${!player.eliminated && latestGame.status !== 'finished' ? '<button class="danger full-width mt-24 btn-eliminate">🚫 Eliminar piloto (desistiu)</button>' : ''}
 
       <div class="bar-label mt-24"><span>🌀 Turbo — posicao ${player.turboPosition} (d${player.turboDiceType})</span><span class="bar-value">${player.turbo.nextPosition != null ? `faltam ${player.turbo.nextPosition - player.turbo.position} p/ d${player.turbo.nextDice}` : 'maximo'}</span></div>
       <div class="bar-track"><div class="bar-fill" style="width:${player.turbo.percent}%; background:var(--purple);"></div></div>
@@ -335,6 +336,15 @@ import {
     busyClick(div.querySelector('.btn-upgrade-turbo'), () => api(player.id, 'upgrade-turbo', { delta: 1 }).catch(() => {}));
     busyClick(div.querySelector('.btn-downgrade-turbo'), () => api(player.id, 'upgrade-turbo', { delta: -1 }).catch(() => {}));
     busyClick(div.querySelector('.btn-lap'), () => api(player.id, 'complete-lap').catch(() => {}));
+    const btnEliminate = div.querySelector('.btn-eliminate');
+    if (btnEliminate) {
+      busyClick(btnEliminate, () => {
+        if (!confirm(`Tem certeza que quer eliminar ${player.name} da corrida? Nao da pra desfazer.`)) return Promise.resolve();
+        const pin = prompt('Digite a senha para confirmar a eliminacao:');
+        if (pin === null) return Promise.resolve();
+        return api(player.id, 'eliminate', { pin }).catch((err) => alert(err.message));
+      });
+    }
 
     const effectErrorEl = div.querySelector('.effect-error-mini');
 
