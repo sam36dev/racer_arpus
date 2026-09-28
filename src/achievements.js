@@ -19,6 +19,7 @@ const CATALOG = [
   { id: 'turbo-maximo', name: 'Turbo Maximo', description: 'Chegar ao nivel maximo do turbo (d12) em uma corrida', icon: '🌀', type: 'auto', code: 'reached_d12' },
   { id: 'dono-de-interlagos', name: 'Dono de Interlagos', description: 'Comprou o Autodromo de Interlagos (concedido pelo admin)', icon: '🏟️', type: 'manual' },
   { id: 'magnata-4-propriedades', name: 'Magnata', description: 'Comprou 4 propriedades na mesma partida (concedido pelo admin)', icon: '🏘️', type: 'manual' },
+  { id: 'imperio-5-propriedades', name: 'Imperio Imobiliario', description: 'Comprou 5 propriedades na mesma partida (concedido pelo admin)', icon: '🏙️', type: 'manual' },
   { id: 'lenda-da-mesa', name: 'Lenda da Mesa', description: 'Ter mais vitorias que todo mundo (minimo 3). Passa de mao em mao: quem ultrapassar o dono atual leva', icon: '🐐', type: 'transferable' },
 ];
 
