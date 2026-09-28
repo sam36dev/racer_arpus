@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const { nanoid } = require('nanoid');
 const db = require('./db');
 const {
@@ -46,8 +47,18 @@ function finesCol(gameId) {
   return gameRef(gameId).collection('fines');
 }
 
+// Codigo da corrida so com numeros (6 digitos), facil de ditar na mesa. Tenta de novo se
+// por acaso cair num codigo que ja existe. Corridas antigas continuam com o id alfanumerico.
+async function newGameCode() {
+  for (let i = 0; i < 10; i++) {
+    const code = String(crypto.randomInt(100000, 1000000));
+    if (!(await gameRef(code).get()).exists) return code;
+  }
+  throw new GameError('GAME_CODE_EXHAUSTED', 'Nao consegui gerar um codigo livre, tente de novo');
+}
+
 async function createGame(name) {
-  const id = nanoid(8);
+  const id = await newGameCode();
   await gameRef(id).set({
     name: name || 'Corrida',
     status: 'lobby',

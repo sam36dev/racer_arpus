@@ -40,7 +40,7 @@ users/{username}        displayName, passwordHash, wins, racesPlayed,
 trophyHolders/{achievementId}  username, since   (dono atual de troféu transferível)
 ```
 
-`gameId` e `playerId` são nanoid(8); o id do usuário **é** o username normalizado (minúsculo).
+`gameId` é um código de 6 dígitos só numérico (`newGameCode()`, fácil de ditar na mesa; corridas antigas mantêm o nanoid) e `playerId` é nanoid(8); o id do usuário **é** o username normalizado (minúsculo).
 
 ## Regras do jogo
 
