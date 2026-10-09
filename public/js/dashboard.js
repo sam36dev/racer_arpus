@@ -82,7 +82,7 @@ function turboDialSVG(position, diceType, key) {
   });
 
   return `
-    <svg class="fuel-dial" viewBox="0 0 100 100" role="img" aria-label="Turbo posicao ${position}">
+    <svg class="fuel-dial" viewBox="0 0 100 100" role="img" aria-label="Potencia posicao ${position}">
       <circle cx="50" cy="56" r="43" fill="#f4f4f4" stroke="#111" stroke-width="5"/>
       ${zones.join('')}
       ${ticks.join('')}
@@ -176,7 +176,7 @@ export function dashboardHTML(player, { finesTotal, totalLaps, isMe = false, sho
 
   const turboCaption = player.turbo.nextPosition != null
     ? `faltam ${player.turbo.nextPosition - player.turbo.position} p/ d${player.turbo.nextDice}`
-    : 'turbo maximo';
+    : 'potencia maxima';
 
   const banners = [];
   if (player.eliminated) {
@@ -214,7 +214,7 @@ export function dashboardHTML(player, { finesTotal, totalLaps, isMe = false, sho
         </div>
 
         <div class="gauge">
-          <div class="gauge-title">🌀 Turbo</div>
+          <div class="gauge-title">🌀 Potencia</div>
           ${turboDialSVG(player.turboPosition, player.diceType, `${player.id}:turbo`)}
           <div class="fuel-percent" style="color:var(--purple)">pos ${player.turboPosition}</div>
           <div class="gauge-caption">${turboCaption}</div>
@@ -225,7 +225,7 @@ export function dashboardHTML(player, { finesTotal, totalLaps, isMe = false, sho
         <div class="dash-stat"><span>🏁 Voltas</span><strong>${player.laps} / ${totalLaps}</strong></div>
         <div class="dash-stat"><span>📋 Multas</span><strong>R$ ${finesTotal.toLocaleString('pt-BR')}</strong></div>
       </div>
-      ${player.diceType < player.turboDiceType ? `<p class="small">Turbo daria d${player.turboDiceType}, mas o pneu gasto limita o dado.</p>` : ''}
+      ${player.diceType < player.turboDiceType ? `<p class="small">A potencia daria d${player.turboDiceType}, mas o pneu gasto limita o dado.</p>` : ''}
       ${banners.join('')}
       ${effects ? `<div class="active-effects-list">${effects}</div>` : ''}
     </div>

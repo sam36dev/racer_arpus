@@ -240,10 +240,10 @@ import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider }
               <button class="secondary btn-change-tire">Trocar marca</button>
             </div>
 
-            <div class="bar-label mt-24"><span>🌀 Turbo</span></div>
+            <div class="bar-label mt-24"><span>🌀 Potencia</span></div>
             <div class="btn-row">
-              <button class="secondary btn-upgrade-turbo">Subir turbo (+1)</button>
-              <button class="danger btn-downgrade-turbo">Diminuir turbo (-1)</button>
+              <button class="secondary btn-upgrade-turbo">Subir potencia (+1)</button>
+              <button class="danger btn-downgrade-turbo">Diminuir potencia (-1)</button>
             </div>
 
             <div class="bar-label mt-24"><span>📋 Multas</span><span class="bar-value">R$ ${finesTotal.toLocaleString('pt-BR')}</span></div>
