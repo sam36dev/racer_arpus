@@ -61,12 +61,7 @@ import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider }
     slider: document.getElementById('panel-slider'),
     myDash: document.getElementById('my-dash'),
 
-    btnRefuel: document.getElementById('btn-refuel'),
-    tireSelect: document.getElementById('tire-select'),
-    btnChangeTire: document.getElementById('btn-change-tire'),
-    btnRepairTire: document.getElementById('btn-repair-tire'),
     finesList: document.getElementById('fines-list'),
-    btnLap: document.getElementById('btn-lap'),
   };
 
   function popAnimate(el) {
@@ -99,7 +94,6 @@ import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider }
     captureNeedles(el.myDash);
     el.myDash.innerHTML = dashboardHTML(player, { finesTotal: finesTotalOf(playerId), totalLaps: latestGame.totalLaps, isMe: true });
     animateNeedles(el.myDash);
-    if (document.activeElement !== el.tireSelect) el.tireSelect.value = player.tire.brand;
 
     const playerFines = latestFines.filter((f) => f.playerId === playerId);
     el.finesList.innerHTML = playerFines
@@ -196,17 +190,6 @@ import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider }
       el.rollError.textContent = err.message;
     }
   });
-
-  busyClick(el.btnRefuel, () => api('refuel').catch(() => {}));
-
-  busyClick(el.btnChangeTire, () => {
-    const brand = el.tireSelect.value;
-    return api('change-tire-brand', { brand }).catch(() => {});
-  });
-
-  busyClick(el.btnRepairTire, () => api('repair-tire').catch(() => {}));
-
-  busyClick(el.btnLap, () => api('complete-lap').catch(() => {}));
 
   // Fecha o aviso "troque de lugar" - e a propria Transmissao Sequencial se desativa
   // (mesmo endpoint que o mestre usa pra desligar efeitos continuos manualmente).

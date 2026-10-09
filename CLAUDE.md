@@ -10,7 +10,7 @@ Três telas:
 
 - [index.html](public/index.html) — criar corrida ou entrar com o código.
 - [master.html](public/master.html) — painel do mestre: vê todos os pilotos e age por qualquer um (multa, reparar/penalizar pneu, subir turbo, +1 volta). Quem cria a corrida também joga. Usa o mesmo carrossel e o mesmo painel de mostradores da tela do piloto (o carro do mestre primeiro), com os controles do mestre ao lado.
-- [player.html](public/player.html) — painel do piloto: rola o dado, abastece, troca pneu, fecha volta. Os mostradores (relógio de gasolina E→F, desenho de pneu com anel de 10 barrinhas, turbo, voltas, multas) ficam lado a lado num carrossel com swipe: o primeiro slide é o seu (com os botões), os outros são os painéis só-leitura de cada adversário. As abas em cima mostram o último número que cada um tirou e pulam pro slide. O painel e o carrossel ficam em [dashboard.js](public/js/dashboard.js), compartilhado com o mestre — mexeu no visual dos mostradores, vale pras duas telas.
+- [player.html](public/player.html) — painel do piloto: só rola o dado (abastecer, pneu e voltas são só do mestre, pedido do usuário — o piloto não tem esses botões). Os mostradores (relógio de gasolina E→F, desenho de pneu com anel de 10 barrinhas, turbo, voltas, multas) ficam lado a lado num carrossel com swipe: o primeiro slide é o seu, os outros são os painéis só-leitura de cada adversário. As abas em cima mostram o último número que cada um tirou e pulam pro slide. O painel e o carrossel ficam em [dashboard.js](public/js/dashboard.js), compartilhado com o mestre — mexeu no visual dos mostradores, vale pras duas telas.
 
 ## Stack e arquitetura
 
@@ -53,7 +53,7 @@ Os números de balanceamento ficam todos em [src/constants.js](src/constants.js)
 - **Voltas**: 10 pra terminar. A primeira a chegar marca `status: 'finished'` e vira `winnerPlayerId`. Completar volta **não** desconta pneu — o desgaste já vem das rolagens normais (ver abaixo); descontar de novo por volta seria contar o mesmo desgaste duas vezes.
 - **Último sobrevivente**: se todos os outros pilotos forem eliminados (corrida com 2+ jogadores), o que sobrou vence na hora — `checkLastStanding()` marca `finished`/`winnerPlayerId` e credita a vitória igual a completar as voltas (`awardWin()`).
 - **Eliminar piloto** (mestre, botão "🚫 Eliminar piloto"): pra quem desiste/sai da mesa — `eliminatePlayer()` exige confirmação + senha (`ELIMINATE_PIN` em [src/constants.js](src/constants.js), checada só no backend), marca `eliminated` e dispara a mesma checagem de último sobrevivente.
-- Reparar pneu (+1 nível) e trocar de marca (reseta pro 10) são livres no app — o custo é físico, na mesa.
+- Reparar pneu (+1 nível) e trocar de marca (reseta pro 10) são livres no app (só o mestre faz) — o custo é físico, na mesa.
 - **Multas**: só o mestre aplica (`applyFine`). Pagamento é físico, então o mestre também quita — `removeFine` tira uma multa específica (corrigir erro) e `clearFines` zera todas as de um jogador de uma vez (depois que ele paga na mesa).
 
 Regras marcadas como ASSUNÇÃO nos comentários (ex: o consumo proporcional ao dado) foram deduzidas, não confirmadas pelo cartão oficial. Se o usuário trouxer o número real, ajuste a constante e apague a nota.
