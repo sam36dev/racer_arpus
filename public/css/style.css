@@ -414,22 +414,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   transition: transform 1.2s cubic-bezier(0.34, 1.25, 0.64, 1); /* leve balanco no fim, tipo ponteiro */
 }
 
-/* Pneu: as 10 bolinhas do cartao, empilhadas */
-.tire-track {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  height: 140px;
-  justify-content: space-between;
-}
-.tire-seg {
-  width: 28px;
-  flex: 1;
-  border-radius: 999px;
-  background: var(--bg-card-2);
-  border: 1px solid var(--border);
-  transition: background 0.3s ease;
-}
+/* Pneu: desenho do pneu com o anel de 10 barrinhas (nivel) em volta */
+.tire-svg { width: 100%; max-width: 120px; height: auto; display: block; }
 
 /* Turbo: barra vertical ate o proximo salto de dado, dado efetivo no meio */
 .turbo-track {

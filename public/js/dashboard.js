@@ -46,6 +46,51 @@ function fuelDialSVG(percent, key) {
   `;
 }
 
+// Desenho de pneu (borracha com sulcos, roda e raios) com as 10 bolinhas do cartao fisico
+// virando um anel de barrinhas em volta: acesas a partir do topo, no sentido horario, ate o nivel atual.
+function ringPoint(angleDeg, radius) {
+  const rad = (angleDeg * Math.PI) / 180;
+  return [(50 + radius * Math.sin(rad)).toFixed(2), (50 - radius * Math.cos(rad)).toFixed(2)];
+}
+
+function tireSVG(level, levelMax, color) {
+  const step = 360 / levelMax;
+  const bars = [];
+  for (let i = 0; i < levelMax; i += 1) {
+    const [x1, y1] = ringPoint(i * step + 4, 45);
+    const [x2, y2] = ringPoint((i + 1) * step - 4, 45);
+    const lit = i < level;
+    bars.push(`<path d="M ${x1} ${y1} A 45 45 0 0 1 ${x2} ${y2}" fill="none" stroke-width="6" stroke-linecap="round"
+      stroke="${lit ? color : '#3a3f4b'}"/>`);
+  }
+
+  const treads = [];
+  for (let i = 0; i < 24; i += 1) {
+    const [x1, y1] = ringPoint(i * 15, 31);
+    const [x2, y2] = ringPoint(i * 15 + 6, 37);
+    treads.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#3a3a3a" stroke-width="2.5"/>`);
+  }
+
+  const spokes = [];
+  for (let i = 0; i < 5; i += 1) {
+    const [x1, y1] = ringPoint(i * 72, 5);
+    const [x2, y2] = ringPoint(i * 72, 17);
+    spokes.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#8a8f98" stroke-width="3.5" stroke-linecap="round"/>`);
+  }
+
+  return `
+    <svg class="tire-svg" viewBox="0 0 100 100" role="img" aria-label="Pneu nivel ${level} de ${levelMax}">
+      ${bars.join('')}
+      <circle cx="50" cy="50" r="38" fill="#151515" stroke="#000" stroke-width="1"/>
+      ${treads.join('')}
+      <circle cx="50" cy="50" r="27" fill="#222" stroke="#2e2e2e" stroke-width="2"/>
+      <circle cx="50" cy="50" r="20" fill="#c9ccd1" stroke="#8a8f98" stroke-width="2"/>
+      ${spokes.join('')}
+      <circle cx="50" cy="50" r="5" fill="#555a63"/>
+    </svg>
+  `;
+}
+
 // Ponteiro gira de verdade: o HTML e recriado a cada render, entao o novo ponteiro nasce
 // no angulo anterior (ou no E, na primeira vez - igual carro ligando) e transiciona ate o atual.
 const needleAngles = {}; // playerId -> ultimo angulo mostrado
@@ -79,12 +124,6 @@ export function animateNeedles(container) {
 export function dashboardHTML(player, { finesTotal, totalLaps, isMe = false, showEffects = true }) {
   const fuelColor = barColor(player.fuel.percent);
   const tireColor = player.tire.level >= 7 ? 'var(--green)' : player.tire.level >= 5 ? 'var(--orange)' : 'var(--red)';
-
-  // As 10 bolinhas do cartao fisico, empilhadas: acesas ate o nivel atual
-  let tireSegments = '';
-  for (let i = player.tire.levelMax; i >= 1; i -= 1) {
-    tireSegments += `<div class="tire-seg" style="${i <= player.tire.level ? `background:${tireColor}` : ''}"></div>`;
-  }
 
   const turboCaption = player.turbo.nextPosition != null
     ? `faltam ${player.turbo.nextPosition - player.turbo.position} p/ d${player.turbo.nextDice}`
@@ -120,8 +159,9 @@ export function dashboardHTML(player, { finesTotal, totalLaps, isMe = false, sho
 
         <div class="gauge">
           <div class="gauge-title">🛞 Pneu</div>
-          <div class="tire-track">${tireSegments}</div>
-          <div class="gauge-caption">${esc(player.tire.label)} ${player.tire.level}/${player.tire.levelMax}<br>cai em ${player.tire.rollsUntilNextLevel}</div>
+          ${tireSVG(player.tire.level, player.tire.levelMax, tireColor)}
+          <div class="fuel-percent" style="color:${tireColor}">${player.tire.level}/${player.tire.levelMax}</div>
+          <div class="gauge-caption">${esc(player.tire.label)} · cai em ${player.tire.rollsUntilNextLevel}</div>
         </div>
 
         <div class="gauge">
