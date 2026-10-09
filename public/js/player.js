@@ -56,37 +56,16 @@ import {
     swapPopupText: document.getElementById('swap-popup-text'),
     btnCloseSwap: document.getElementById('btn-close-swap'),
 
-    fuelPercent: document.getElementById('fuel-percent'),
-    fuelBar: document.getElementById('fuel-bar'),
-    fuelWarning: document.getElementById('fuel-warning'),
-    fuelEmpty: document.getElementById('fuel-empty'),
-    btnRefuel: document.getElementById('btn-refuel'),
+    panelTabs: document.getElementById('panel-tabs'),
+    slider: document.getElementById('panel-slider'),
+    myDash: document.getElementById('my-dash'),
 
-    tireLabel: document.getElementById('tire-label'),
-    tireRolls: document.getElementById('tire-rolls'),
-    tireBar: document.getElementById('tire-bar'),
-    tirePenalty: document.getElementById('tire-penalty'),
-    tireEliminated: document.getElementById('tire-eliminated'),
+    btnRefuel: document.getElementById('btn-refuel'),
     tireSelect: document.getElementById('tire-select'),
     btnChangeTire: document.getElementById('btn-change-tire'),
     btnRepairTire: document.getElementById('btn-repair-tire'),
-
-    finesTotal: document.getElementById('fines-total'),
     finesList: document.getElementById('fines-list'),
-
-    turboPosition: document.getElementById('turbo-position'),
-    turboBar: document.getElementById('turbo-bar'),
-    turboNextLabel: document.getElementById('turbo-next-label'),
-    turboDiceBadge: document.getElementById('turbo-dice-badge'),
-    diceBadge: document.getElementById('dice-badge'),
-    tireOverrideNote: document.getElementById('tire-override-note'),
-    activeEffectsList: document.getElementById('active-effects-list'),
-
-    lapsCurrent: document.getElementById('laps-current'),
-    lapsTotal: document.getElementById('laps-total'),
     btnLap: document.getElementById('btn-lap'),
-
-    opponentsList: document.getElementById('opponents-list'),
   };
 
   function popAnimate(el) {
@@ -102,11 +81,159 @@ import {
     return 'var(--green)';
   }
 
+  const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  function esc(text) {
+    return String(text == null ? '' : text).replace(/[&<>"']/g, (c) => ESC_MAP[c]);
+  }
+
+  // Relogio de combustivel estilo painel de carro: ponteiro vai de E (vazio) a F (cheio).
+  const DIAL_SWEEP = 70; // graus pra cada lado a partir do topo
+  function dialPoint(angleDeg, radius) {
+    const rad = (angleDeg * Math.PI) / 180;
+    return [50 + radius * Math.sin(rad), 56 - radius * Math.cos(rad)];
+  }
+
+  function fuelDialSVG(percent) {
+    const ticks = [];
+    for (let i = 0; i <= 8; i += 1) {
+      const angle = -DIAL_SWEEP + (i * DIAL_SWEEP * 2) / 8;
+      const major = i === 0 || i === 4 || i === 8;
+      const [x1, y1] = dialPoint(angle, 38);
+      const [x2, y2] = dialPoint(angle, major ? 28 : 32);
+      const color = i === 0 ? 'var(--red)' : 'var(--text)';
+      ticks.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${major ? 4 : 2}" stroke-linecap="round"/>`);
+    }
+    const needleAngle = -DIAL_SWEEP + (Math.max(0, Math.min(100, percent)) / 100) * DIAL_SWEEP * 2;
+    const [nx, ny] = dialPoint(needleAngle, 34);
+    const [ex, ey] = dialPoint(-DIAL_SWEEP - 6, 21);
+    const [fx, fy] = dialPoint(DIAL_SWEEP + 6, 21);
+    return `
+      <svg class="fuel-dial" viewBox="0 0 100 100" role="img" aria-label="Combustivel ${percent}%">
+        <circle cx="50" cy="56" r="44" fill="var(--bg-card-2)" stroke="var(--border)" stroke-width="3"/>
+        ${ticks.join('')}
+        <text x="${ex}" y="${ey}" class="dial-letter" fill="var(--red)">E</text>
+        <text x="${fx}" y="${fy}" class="dial-letter" fill="var(--text)">F</text>
+        <text x="50" y="40" class="dial-icon">⛽</text>
+        <line x1="50" y1="56" x2="${nx}" y2="${ny}" stroke="var(--red)" stroke-width="3" stroke-linecap="round" class="dial-needle"/>
+        <circle cx="50" cy="56" r="5" fill="var(--text)"/>
+      </svg>
+    `;
+  }
+
+  // Painel de mostradores lado a lado (tanque, pneu, turbo) + voltas e multas.
+  // Mesmo HTML pro seu slide e pros dos adversarios - so o texto dos avisos muda (isMe).
+  function dashboardHTML(player, finesTotal, totalLaps, isMe) {
+    const fuelColor = barColor(player.fuel.percent);
+    const tireColor = player.tire.level >= 7 ? 'var(--green)' : player.tire.level >= 5 ? 'var(--orange)' : 'var(--red)';
+
+    // As 10 bolinhas do cartao fisico, empilhadas: acesas ate o nivel atual
+    let tireSegments = '';
+    for (let i = player.tire.levelMax; i >= 1; i -= 1) {
+      tireSegments += `<div class="tire-seg" style="${i <= player.tire.level ? `background:${tireColor}` : ''}"></div>`;
+    }
+
+    const turboCaption = player.turbo.nextPosition != null
+      ? `faltam ${player.turbo.nextPosition - player.turbo.position} p/ d${player.turbo.nextDice}`
+      : 'turbo maximo';
+
+    const banners = [];
+    if (player.eliminated) {
+      banners.push(`<div class="danger-banner">ELIMINADO${isMe ? ' - voce nao pode mais rolar nesta corrida' : ''}</div>`);
+    } else {
+      if (player.fuel.empty) {
+        banners.push(`<div class="danger-banner">SEM COMBUSTIVEL${isMe ? ' - va ao posto ou peca reabastecimento ao mestre!' : ''}</div>`);
+      } else if (player.fuel.warning) {
+        banners.push(`<div class="warning-banner">${isMe ? 'Voce tem' : 'Tem'} mais ${player.fuel.rollsLeft} rodada(s) de combustivel</div>`);
+      }
+      if (player.tire.penaltyDice) {
+        banners.push(`<div class="warning-banner">Pneu gasto: dado limitado a d${player.tire.penaltyDice}</div>`);
+      }
+    }
+
+    const effects = player.activeEffects
+      .map((eff) => `<span class="badge tag-effect">${esc(eff.label)}</span>`)
+      .join('');
+
+    return `
+      <div class="card dash-card">
+        <div class="gauges">
+          <div class="gauge">
+            <div class="gauge-title">⛽ Gasolina</div>
+            ${fuelDialSVG(player.fuel.percent)}
+            <div class="fuel-percent" style="color:${fuelColor}">${player.fuel.percent}%</div>
+            <div class="gauge-caption">${player.fuel.rollsLeft} dado(s) restantes</div>
+          </div>
+
+          <div class="gauge">
+            <div class="gauge-title">🛞 Pneu</div>
+            <div class="tire-track">${tireSegments}</div>
+            <div class="gauge-caption">${esc(player.tire.label)} ${player.tire.level}/${player.tire.levelMax}<br>cai em ${player.tire.rollsUntilNextLevel}</div>
+          </div>
+
+          <div class="gauge">
+            <div class="gauge-title">🌀 Turbo</div>
+            <div class="turbo-track">
+              <div class="turbo-fill" style="height:${player.turbo.percent}%"></div>
+              <div class="turbo-dice">d${player.diceType}</div>
+            </div>
+            <div class="gauge-caption">pos ${player.turboPosition}<br>${turboCaption}</div>
+          </div>
+        </div>
+
+        <div class="dash-stats">
+          <div class="dash-stat"><span>🏁 Voltas</span><strong>${player.laps} / ${totalLaps}</strong></div>
+          <div class="dash-stat"><span>📋 Multas</span><strong>R$ ${finesTotal.toLocaleString('pt-BR')}</strong></div>
+        </div>
+        ${player.diceType < player.turboDiceType ? `<p class="small">Turbo daria d${player.turboDiceType}, mas o pneu gasto limita o dado.</p>` : ''}
+        ${banners.join('')}
+        ${effects ? `<div class="active-effects-list">${effects}</div>` : ''}
+      </div>
+    `;
+  }
+
   let latestGame = null;
   let latestPlayerRaw = null;
   let latestFines = [];
   let latestPlayersRaw = [];
   const seenRollAt = {}; // playerId -> timestamp da ultima rolagem ja animada
+  const opponentSlides = {}; // playerId -> elemento .panel-slide do adversario
+  let activeSlide = 0;
+
+  function finesTotalOf(id) {
+    return latestFines.filter((f) => f.playerId === id).reduce((sum, f) => sum + f.amount, 0);
+  }
+
+  function slideLeft(slide) {
+    return slide.offsetLeft - el.slider.offsetLeft;
+  }
+
+  function goToSlide(index) {
+    const target = el.slider.children[index];
+    if (target) el.slider.scrollTo({ left: slideLeft(target), behavior: 'smooth' });
+  }
+
+  function updateActiveTab() {
+    Array.from(el.panelTabs.children).forEach((tab, i) => tab.classList.toggle('active', i === activeSlide));
+  }
+
+  // Descobre qual slide esta na tela pelo scroll (swipe do dedo ou toque na aba)
+  el.slider.addEventListener('scroll', () => {
+    const left = el.slider.scrollLeft;
+    const slides = Array.from(el.slider.children);
+    let best = 0;
+    slides.forEach((slide, i) => {
+      if (Math.abs(slideLeft(slide) - left) < Math.abs(slideLeft(slides[best]) - left)) best = i;
+    });
+    if (best !== activeSlide) {
+      activeSlide = best;
+      updateActiveTab();
+    }
+  }, { passive: true });
+
+  el.panelTabs.addEventListener('click', (e) => {
+    const tab = e.target.closest('.panel-tab');
+    if (tab) goToSlide(Number(tab.dataset.index));
+  });
 
   function render() {
     if (!latestGame || !latestPlayerRaw) return;
@@ -116,64 +243,14 @@ import {
     el.name.textContent = player.name;
     el.gameStatus.textContent = `Corrida: ${latestGame.name} — status: ${latestGame.status}`;
 
-    // Combustivel
-    el.fuelPercent.textContent = `${player.fuel.percent}%`;
-    el.fuelBar.style.width = `${player.fuel.percent}%`;
-    el.fuelBar.style.background = barColor(player.fuel.percent);
-    if (player.fuel.empty) {
-      el.fuelEmpty.style.display = 'block';
-      el.fuelWarning.style.display = 'none';
-    } else if (player.fuel.warning) {
-      el.fuelEmpty.style.display = 'none';
-      el.fuelWarning.style.display = 'block';
-      el.fuelWarning.textContent = `Voce tem mais ${player.fuel.rollsLeft} rodada(s) antes de ficar sem combustivel!`;
-    } else {
-      el.fuelEmpty.style.display = 'none';
-      el.fuelWarning.style.display = 'none';
-    }
+    // Seu painel
+    el.myDash.innerHTML = dashboardHTML(player, finesTotalOf(playerId), latestGame.totalLaps, true);
+    if (document.activeElement !== el.tireSelect) el.tireSelect.value = player.tire.brand;
 
-    // Pneu
-    const tirePercent = Math.round((player.tire.level / player.tire.levelMax) * 100);
-    el.tireLabel.textContent = `${player.tire.label} — nivel ${player.tire.level}/${player.tire.levelMax}`;
-    el.tireRolls.textContent = `${player.tire.rollsUntilNextLevel} rolagens ate o proximo nivel`;
-    el.tireBar.style.width = `${tirePercent}%`;
-    el.tireBar.style.background = barColor(tirePercent);
-    el.tireSelect.value = player.tire.brand;
-
-    if (player.eliminated) {
-      el.tireEliminated.style.display = 'block';
-      el.tirePenalty.style.display = 'none';
-    } else {
-      el.tireEliminated.style.display = 'none';
-      if (player.tire.penaltyDice) {
-        el.tirePenalty.style.display = 'block';
-        el.tirePenalty.textContent = `Pneu gasto: dado limitado a d${player.tire.penaltyDice}!`;
-      } else {
-        el.tirePenalty.style.display = 'none';
-      }
-    }
-
-    // Multas
     const playerFines = latestFines.filter((f) => f.playerId === playerId);
-    const total = playerFines.reduce((sum, f) => sum + f.amount, 0);
-    el.finesTotal.textContent = `R$ ${total.toLocaleString('pt-BR')}`;
     el.finesList.innerHTML = playerFines
-      .map((f) => `<div>R$ ${f.amount.toLocaleString('pt-BR')} — ${f.reason || 'sem motivo'}</div>`)
+      .map((f) => `<div>R$ ${f.amount.toLocaleString('pt-BR')} — ${esc(f.reason || 'sem motivo')}</div>`)
       .join('') || '<div>Nenhuma multa aplicada.</div>';
-
-    // Turbo / nivel
-    el.turboPosition.textContent = player.turboPosition;
-    el.turboBar.style.width = `${player.turbo.percent}%`;
-    el.turboNextLabel.textContent = player.turbo.nextPosition != null
-      ? `faltam ${player.turbo.nextPosition - player.turbo.position} p/ d${player.turbo.nextDice}`
-      : 'turbo no maximo (d12)';
-    el.turboDiceBadge.textContent = `d${player.turboDiceType}`;
-    el.diceBadge.textContent = `d${player.diceType}`;
-    el.tireOverrideNote.style.display = player.diceType < player.turboDiceType ? 'block' : 'none';
-
-    el.activeEffectsList.innerHTML = player.activeEffects
-      .map((eff) => `<span class="badge tag-effect">${eff.label}</span>`)
-      .join('');
 
     // Transmissao Sequencial: acompanhamento do oponente observado + aviso "troque de lugar"
     if (player.watching) {
@@ -195,10 +272,6 @@ import {
       el.swapPopup.style.display = 'none';
     }
 
-    // Voltas
-    el.lapsCurrent.textContent = player.laps;
-    el.lapsTotal.textContent = latestGame.totalLaps;
-
     // Bloqueios de rolagem
     const blocked = player.eliminated || player.fuel.empty;
     el.btnRoll.disabled = blocked || latestGame.status === 'finished';
@@ -211,33 +284,56 @@ import {
       popAnimate(el.diceResult);
     }
 
-    // Outros pilotos: mostra o ultimo numero que cada um tirou
+    // Paineis dos adversarios: um slide por piloto, reaproveitado entre renders
+    // (recriar o elemento faria o carrossel pular de posicao)
     const opponents = latestPlayersRaw
       .filter((p) => p.id !== playerId)
       .map((p) => window.GameCalc.serializePlayer(p));
 
-    el.opponentsList.innerHTML = opponents.length
-      ? ''
-      : '<p class="small">Ninguem alem de voce entrou ainda.</p>';
+    Object.keys(opponentSlides).forEach((id) => {
+      if (!opponents.some((o) => o.id === id)) {
+        opponentSlides[id].remove();
+        delete opponentSlides[id];
+      }
+    });
 
     opponents.forEach((opp) => {
-      const row = document.createElement('div');
-      row.className = 'opponent-row';
-      const hasRoll = !!opp.lastRoll;
-      row.innerHTML = `
-        <span class="color-dot" style="background:${opp.color}"></span>
-        <span class="name">${opp.name}</span>
-        <span class="roll-value ${hasRoll ? '' : 'empty'}">${hasRoll ? opp.lastRoll.value : '—'}</span>
-      `;
-      el.opponentsList.appendChild(row);
-
-      if (hasRoll && seenRollAt[opp.id] !== opp.lastRoll.at) {
-        seenRollAt[opp.id] = opp.lastRoll.at;
-        if (seenRollAt[opp.id + ':init'] !== undefined) {
-          popAnimate(row.querySelector('.roll-value'));
-        }
-        seenRollAt[opp.id + ':init'] = true;
+      let slide = opponentSlides[opp.id];
+      if (!slide) {
+        slide = document.createElement('div');
+        slide.className = 'panel-slide';
+        el.slider.appendChild(slide);
+        opponentSlides[opp.id] = slide;
       }
+      slide.innerHTML = `
+        <div class="opp-header">
+          <span class="color-dot" style="background:${esc(opp.color)}"></span>
+          <h3>${esc(opp.name)}</h3>
+          <span class="small">ultimo dado: <strong>${opp.lastRoll ? opp.lastRoll.value : '—'}</strong></span>
+        </div>
+        ${dashboardHTML(opp, finesTotalOf(opp.id), latestGame.totalLaps, false)}
+      `;
+    });
+
+    // Abas: voce + adversarios, com o ultimo numero que cada um tirou
+    const tabs = [{ name: 'Voce', color: player.color }, ...opponents];
+    el.panelTabs.innerHTML = tabs
+      .map((p, i) => `
+        <button type="button" class="panel-tab ${i === activeSlide ? 'active' : ''}" data-index="${i}">
+          <span class="color-dot" style="background:${esc(p.color)}"></span>
+          <span>${esc(p.name)}</span>
+          ${i > 0 ? `<span class="roll-value ${p.lastRoll ? '' : 'empty'}">${p.lastRoll ? p.lastRoll.value : '—'}</span>` : ''}
+        </button>
+      `)
+      .join('');
+
+    opponents.forEach((opp, i) => {
+      if (!opp.lastRoll || seenRollAt[opp.id] === opp.lastRoll.at) return;
+      seenRollAt[opp.id] = opp.lastRoll.at;
+      if (seenRollAt[opp.id + ':init'] !== undefined) {
+        popAnimate(el.panelTabs.children[i + 1].querySelector('.roll-value'));
+      }
+      seenRollAt[opp.id + ':init'] = true;
     });
   }
 

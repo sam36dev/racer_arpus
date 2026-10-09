@@ -10,7 +10,7 @@ Três telas:
 
 - [index.html](public/index.html) — criar corrida ou entrar com o código.
 - [master.html](public/master.html) — painel do mestre: vê todos os pilotos e age por qualquer um (multa, reparar/penalizar pneu, subir turbo, +1 volta). Quem cria a corrida também joga.
-- [player.html](public/player.html) — painel do piloto: rola o dado, abastece, troca pneu, fecha volta, e vê o último número que cada adversário tirou.
+- [player.html](public/player.html) — painel do piloto: rola o dado, abastece, troca pneu, fecha volta. Os mostradores (relógio de gasolina E→F, 10 bolinhas do pneu, turbo, voltas, multas) ficam lado a lado num carrossel com swipe: o primeiro slide é o seu (com os botões), os outros são os painéis só-leitura de cada adversário. As abas em cima mostram o último número que cada um tirou e pulam pro slide. O painel é o mesmo `dashboardHTML()` pra você e pros adversários.
 
 ## Stack e arquitetura
 

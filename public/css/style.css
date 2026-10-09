@@ -333,3 +333,140 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 .effect-row select { width: auto; flex: 1; min-width: 140px; }
 .effect-row button { padding: 8px 12px; font-size: 0.85rem; }
+
+/* --- Painel do piloto: carrossel lateral (voce + adversarios) --- */
+.panel-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin: 16px 0 10px;
+  scrollbar-width: none;
+}
+.panel-tabs::-webkit-scrollbar { display: none; }
+
+.panel-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  border-radius: 999px;
+  background: var(--bg-card-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.panel-tab.active { color: var(--text); border-color: var(--green); }
+.panel-tab .roll-value { font-weight: 800; color: var(--text); }
+.panel-tab .roll-value.empty { color: var(--muted); font-weight: 400; }
+.panel-tab .color-dot { width: 10px; height: 10px; }
+
+.panel-slider {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.panel-slider::-webkit-scrollbar { display: none; }
+
+.panel-slide {
+  flex: 0 0 100%;
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.opp-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.opp-header h3 { margin: 0; flex: 1; }
+
+/* --- Mostradores lado a lado --- */
+.gauges {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+.gauge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.gauge-title { font-size: 0.8rem; font-weight: 700; }
+.gauge-caption { font-size: 0.72rem; color: var(--muted); text-align: center; line-height: 1.3; }
+
+/* Gasolina: relogio estilo painel de carro (E -> F), porcentagem e dados restantes embaixo */
+.fuel-dial { width: 100%; max-width: 120px; height: auto; display: block; }
+.dial-letter { font-size: 11px; font-weight: 800; text-anchor: middle; dominant-baseline: middle; }
+.dial-icon { font-size: 12px; text-anchor: middle; dominant-baseline: middle; }
+.fuel-percent { font-size: 1.3rem; font-weight: 800; line-height: 1; }
+
+/* Pneu: as 10 bolinhas do cartao, empilhadas */
+.tire-track {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 140px;
+  justify-content: space-between;
+}
+.tire-seg {
+  width: 28px;
+  flex: 1;
+  border-radius: 999px;
+  background: var(--bg-card-2);
+  border: 1px solid var(--border);
+  transition: background 0.3s ease;
+}
+
+/* Turbo: barra vertical ate o proximo salto de dado, dado efetivo no meio */
+.turbo-track {
+  position: relative;
+  width: 44px;
+  height: 140px;
+  border-radius: 999px;
+  background: var(--bg-card-2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.turbo-fill {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: var(--purple);
+  transition: height 0.4s ease;
+}
+.turbo-dice {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.dash-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+.dash-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg-card-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.dash-stat strong { font-size: 1.2rem; color: var(--text); }
