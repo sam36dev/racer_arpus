@@ -7,6 +7,7 @@ import {
   orderBy,
   limit,
 } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
+import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider } from './dashboard.js';
 
 (function () {
   const params = new URLSearchParams(window.location.search);
@@ -58,7 +59,7 @@ import {
     });
   }
 
-  const grid = document.getElementById('player-grid');
+  const panels = createPanelSlider(document.getElementById('panel-slider'), document.getElementById('panel-tabs'));
   const gameNameEl = document.getElementById('game-name');
   const gameCodeEl = document.getElementById('game-code');
   const gameStatusEl = document.getElementById('game-status');
@@ -186,108 +187,107 @@ import {
     }
   });
 
-  function barColor(percent) {
-    if (percent <= 30) return 'var(--red)';
-    if (percent <= 60) return 'var(--orange)';
-    return 'var(--green)';
-  }
-
   function popAnimate(el) {
     el.classList.remove('dice-pop');
     void el.offsetWidth;
     el.classList.add('dice-pop');
   }
 
-  function playerCard(player) {
+  // Preenche o slide do piloto: painel de mostradores (igual ao da tela do piloto) + controles do mestre.
+  // O slide e reaproveitado entre renders (createPanelSlider), so o conteudo e recriado.
+  function fillPlayerSlide(div, player) {
     const fines = latestFines.filter((f) => f.playerId === player.id);
     const finesTotal = fines.reduce((sum, f) => sum + f.amount, 0);
-    const tirePercent = Math.round((player.tire.level / player.tire.levelMax) * 100);
 
     const isMine = player.id === myPlayerId;
     const rollBlocked = player.eliminated || player.fuel.empty || latestGame.status === 'finished';
 
-    const div = document.createElement('div');
-    div.className = isMine ? 'card card-mine' : 'card';
+    captureNeedles(div);
     div.innerHTML = `
-      <div class="player-header">
-        <div class="color-dot" style="background:${player.color}"></div>
-        <h3>${player.name}</h3>
-        <span class="badge tag-dice">d${player.diceType}</span>
-        ${isMine ? '<span class="badge" style="background:var(--green);color:#04241f;">SEU CARRO</span>' : ''}
-      </div>
-
-      <div class="dice-result-mini" style="display:none;"></div>
-      <button class="btn-roll ${isMine ? 'dice-btn' : 'secondary full-width'}" ${rollBlocked ? 'disabled' : ''}>Rolar dado${isMine ? '' : ' (por este piloto)'}</button>
-      <div class="roll-error-mini danger-banner" style="display:none;"></div>
-
-      <div class="bar-label"><span>⛽ Combustivel</span><span class="bar-value">${player.fuel.percent}% (${player.fuel.rollsLeft} rolagens)</span></div>
-      <div class="bar-track"><div class="bar-fill" style="width:${player.fuel.percent}%; background:${barColor(player.fuel.percent)};"></div></div>
-      ${player.fuel.empty ? '<div class="danger-banner">SEM COMBUSTIVEL</div>' : player.fuel.warning ? '<div class="warning-banner">Combustivel acabando</div>' : ''}
-      <button class="secondary full-width btn-refuel">Abastecer +1</button>
-
-      <div class="bar-label mt-24"><span>🛞 ${player.tire.label} — nivel ${player.tire.level}/${player.tire.levelMax}</span><span class="bar-value">${player.tire.rollsUntilNextLevel} p/ proximo</span></div>
-      <div class="bar-track"><div class="bar-fill" style="width:${tirePercent}%; background:${barColor(tirePercent)};"></div></div>
-      ${player.eliminated ? '<div class="danger-banner">ELIMINADO</div>' : player.tire.penaltyDice ? `<div class="warning-banner">Dado limitado a d${player.tire.penaltyDice} pelo pneu</div>` : ''}
-      <div class="btn-row">
-        <button class="secondary btn-repair-tire">Reparar (+1 nivel)</button>
-        <button class="danger btn-damage-tire">Penalizar (-1 nivel)</button>
-      </div>
-      <div class="btn-row">
-        <select class="tire-select">
-          <option value="pirelli" ${player.tire.brand === 'pirelli' ? 'selected' : ''}>Pirelli (20)</option>
-          <option value="continental" ${player.tire.brand === 'continental' ? 'selected' : ''}>Continental (25)</option>
-          <option value="michelin" ${player.tire.brand === 'michelin' ? 'selected' : ''}>Michelin (30)</option>
-        </select>
-        <button class="secondary btn-change-tire">Trocar marca</button>
-      </div>
-
-      <div class="bar-label mt-24"><span>📋 Multas</span><span class="bar-value">R$ ${finesTotal.toLocaleString('pt-BR')}</span></div>
-      ${fines.length ? `
-        <div class="fines-list">
-          ${fines.map((f) => `
-            <div class="fine-row" data-fine-id="${f.id}">
-              <span>R$ ${f.amount.toLocaleString('pt-BR')} — ${f.reason || 'sem motivo'}</span>
-              <button class="secondary btn-remove-fine" data-fine-id="${f.id}" title="Remover essa multa">✕</button>
-            </div>
-          `).join('')}
+      <div class="card ${isMine ? 'card-mine' : ''}">
+        <div class="player-header">
+          <div class="color-dot" style="background:${esc(player.color)}"></div>
+          <h3>${esc(player.name)}</h3>
+          <span class="badge tag-dice">d${player.diceType}</span>
+          ${isMine ? '<span class="badge" style="background:var(--green);color:#04241f;">SEU CARRO</span>' : ''}
         </div>
-      ` : ''}
-      <div class="btn-row">
-        <input type="number" class="fine-amount" placeholder="Valor (R$)" value="1000" style="flex:1" />
-        <input type="text" class="fine-reason" placeholder="Motivo" style="flex:2" />
-      </div>
-      <button class="danger full-width btn-apply-fine">Aplicar multa</button>
-      ${fines.length ? '<button class="secondary full-width btn-clear-fines">Quitar todas as multas</button>' : ''}
-      ${!player.eliminated && latestGame.status !== 'finished' ? '<button class="danger full-width mt-24 btn-eliminate">🚫 Eliminar piloto (desistiu)</button>' : ''}
 
-      <div class="bar-label mt-24"><span>🌀 Turbo — posicao ${player.turboPosition} (d${player.turboDiceType})</span><span class="bar-value">${player.turbo.nextPosition != null ? `faltam ${player.turbo.nextPosition - player.turbo.position} p/ d${player.turbo.nextDice}` : 'maximo'}</span></div>
-      <div class="bar-track"><div class="bar-fill" style="width:${player.turbo.percent}%; background:var(--purple);"></div></div>
-      <div class="btn-row">
-        <button class="secondary btn-upgrade-turbo">Subir turbo (+1)</button>
-        <button class="danger btn-downgrade-turbo">Diminuir turbo (-1)</button>
-      </div>
-
-      <div class="bar-label mt-24"><span>🏁 Voltas</span><span class="bar-value">${player.laps}/${latestGame.totalLaps}</span></div>
-      <button class="secondary full-width btn-lap">+1 volta</button>
-
-      ${player.activeEffects.length ? `
-        <div class="bar-label mt-24"><span>⚡ Efeitos ativos</span></div>
-        ${player.activeEffects.map((eff) => `
-          <div class="effect-row" data-field="${eff.field}">
-            <span class="badge tag-effect">${eff.label}</span>
-            <button class="secondary btn-clear-effect" data-field="${eff.field}">✕ Remover</button>
-            ${eff.transferable ? `<button class="secondary btn-transfer-effect" data-field="${eff.field}">➜ Transferir</button>` : ''}
-            ${eff.transferable ? `
-              <select class="transfer-target-select" data-field="${eff.field}" style="display:none;">
-                <option value="">Enviar pra quem?</option>
-                ${latestPlayersRaw.filter((p) => p.id !== player.id).map((p) => `<option value="${p.id}">${p.name}</option>`).join('')}
-              </select>
-            ` : ''}
+        <div class="master-layout">
+          <div>
+            <div class="dice-result-mini" style="display:none;"></div>
+            <button class="btn-roll ${isMine ? 'dice-btn' : 'secondary full-width'}" ${rollBlocked ? 'disabled' : ''}>🎲 Rolar dado${isMine ? '' : ' (por este piloto)'}</button>
+            <div class="roll-error-mini danger-banner" style="display:none;"></div>
+            ${dashboardHTML(player, { finesTotal, totalLaps: latestGame.totalLaps, isMe: isMine, showEffects: false })}
           </div>
-        `).join('')}
-        <div class="effect-error-mini danger-banner" style="display:none;"></div>
-      ` : ''}
+
+          <div>
+            <div class="btn-row">
+              <button class="secondary btn-refuel">⛽ Abastecer +1</button>
+              <button class="secondary btn-lap">🏁 +1 volta</button>
+            </div>
+
+            <div class="bar-label mt-24"><span>🛞 Pneu</span></div>
+            <div class="btn-row">
+              <button class="secondary btn-repair-tire">Reparar (+1 nivel)</button>
+              <button class="danger btn-damage-tire">Penalizar (-1 nivel)</button>
+            </div>
+            <div class="btn-row">
+              <select class="tire-select">
+                <option value="pirelli" ${player.tire.brand === 'pirelli' ? 'selected' : ''}>Pirelli (20)</option>
+                <option value="continental" ${player.tire.brand === 'continental' ? 'selected' : ''}>Continental (25)</option>
+                <option value="michelin" ${player.tire.brand === 'michelin' ? 'selected' : ''}>Michelin (30)</option>
+              </select>
+              <button class="secondary btn-change-tire">Trocar marca</button>
+            </div>
+
+            <div class="bar-label mt-24"><span>🌀 Turbo</span></div>
+            <div class="btn-row">
+              <button class="secondary btn-upgrade-turbo">Subir turbo (+1)</button>
+              <button class="danger btn-downgrade-turbo">Diminuir turbo (-1)</button>
+            </div>
+
+            <div class="bar-label mt-24"><span>📋 Multas</span><span class="bar-value">R$ ${finesTotal.toLocaleString('pt-BR')}</span></div>
+            ${fines.length ? `
+              <div class="fines-list">
+                ${fines.map((f) => `
+                  <div class="fine-row" data-fine-id="${f.id}">
+                    <span>R$ ${f.amount.toLocaleString('pt-BR')} — ${esc(f.reason || 'sem motivo')}</span>
+                    <button class="secondary btn-remove-fine" data-fine-id="${f.id}" title="Remover essa multa">✕</button>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+            <div class="btn-row">
+              <input type="number" class="fine-amount" placeholder="Valor (R$)" value="1000" style="flex:1" />
+              <input type="text" class="fine-reason" placeholder="Motivo" style="flex:2" />
+            </div>
+            <button class="danger full-width btn-apply-fine">Aplicar multa</button>
+            ${fines.length ? '<button class="secondary full-width btn-clear-fines">Quitar todas as multas</button>' : ''}
+
+            ${player.activeEffects.length ? `
+              <div class="bar-label mt-24"><span>⚡ Efeitos ativos</span></div>
+              ${player.activeEffects.map((eff) => `
+                <div class="effect-row" data-field="${eff.field}">
+                  <span class="badge tag-effect">${esc(eff.label)}</span>
+                  <button class="secondary btn-clear-effect" data-field="${eff.field}">✕ Remover</button>
+                  ${eff.transferable ? `<button class="secondary btn-transfer-effect" data-field="${eff.field}">➜ Transferir</button>` : ''}
+                  ${eff.transferable ? `
+                    <select class="transfer-target-select" data-field="${eff.field}" style="display:none;">
+                      <option value="">Enviar pra quem?</option>
+                      ${latestPlayersRaw.filter((p) => p.id !== player.id).map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}
+                    </select>
+                  ` : ''}
+                </div>
+              `).join('')}
+              <div class="effect-error-mini danger-banner" style="display:none;"></div>
+            ` : ''}
+
+            ${!player.eliminated && latestGame.status !== 'finished' ? '<button class="danger full-width mt-24 btn-eliminate">🚫 Eliminar piloto (desistiu)</button>' : ''}
+          </div>
+        </div>
+      </div>
     `;
+    animateNeedles(div);
 
     if (player.lastRoll) {
       const resultEl = div.querySelector('.dice-result-mini');
@@ -392,7 +392,6 @@ import {
       });
     });
 
-    return div;
   }
 
   function renderLuckLog() {
@@ -428,9 +427,16 @@ import {
       winnerBanner.style.display = 'none';
     }
 
-    grid.innerHTML = '';
     const ordered = [...players].sort((a, b) => (a.id === myPlayerId ? -1 : b.id === myPlayerId ? 1 : 0));
-    ordered.forEach((player) => grid.appendChild(playerCard(player)));
+    const slides = panels.syncSlides(ordered.map((p) => p.id));
+    ordered.forEach((player, i) => fillPlayerSlide(slides[i], player));
+    panels.renderTabs(ordered.map((p) => ({
+      id: p.id,
+      name: p.id === myPlayerId ? `${p.name} (voce)` : p.name,
+      color: p.color,
+      lastRoll: p.lastRoll,
+      showRoll: true,
+    })));
 
     renderLuckLog();
     refreshLuckActivatePanelOptions();

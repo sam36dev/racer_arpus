@@ -475,3 +475,15 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   color: var(--muted);
 }
 .dash-stat strong { font-size: 1.2rem; color: var(--text); }
+
+/* Mestre: painel do piloto a esquerda, controles a direita (empilha no celular) */
+.master-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 800px) {
+  .master-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+.master-layout .dash-card { margin: 12px 0 0; background: var(--bg-card-2); }
+.gauges { max-width: 480px; margin: 0 auto; }

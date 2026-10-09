@@ -4,6 +4,7 @@ import {
   onSnapshot,
   collection,
 } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
+import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider } from './dashboard.js';
 
 (function () {
   const params = new URLSearchParams(window.location.search);
@@ -75,192 +76,16 @@ import {
     el.classList.add('dice-pop');
   }
 
-  function barColor(percent) {
-    if (percent <= 30) return 'var(--red)';
-    if (percent <= 60) return 'var(--orange)';
-    return 'var(--green)';
-  }
-
-  const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-  function esc(text) {
-    return String(text == null ? '' : text).replace(/[&<>"']/g, (c) => ESC_MAP[c]);
-  }
-
-  // Relogio de combustivel estilo painel de carro: ponteiro vai de E (vazio) a F (cheio).
-  const DIAL_SWEEP = 70; // graus pra cada lado a partir do topo
-  function dialPoint(angleDeg, radius) {
-    const rad = (angleDeg * Math.PI) / 180;
-    return [50 + radius * Math.sin(rad), 56 - radius * Math.cos(rad)];
-  }
-
-  function fuelDialSVG(percent, key) {
-    const ticks = [];
-    for (let i = 0; i <= 8; i += 1) {
-      const angle = -DIAL_SWEEP + (i * DIAL_SWEEP * 2) / 8;
-      const major = i === 0 || i === 4 || i === 8;
-      const [x1, y1] = dialPoint(angle, 38);
-      const [x2, y2] = dialPoint(angle, major ? 28 : 32);
-      const color = i === 0 ? '#e63946' : '#111';
-      ticks.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${major ? 5 : 3}"/>`);
-    }
-    const needleAngle = -DIAL_SWEEP + (Math.max(0, Math.min(100, percent)) / 100) * DIAL_SWEEP * 2;
-    const [ex, ey] = dialPoint(-DIAL_SWEEP - 6, 21);
-    const [fx, fy] = dialPoint(DIAL_SWEEP + 6, 21);
-    return `
-      <svg class="fuel-dial" viewBox="0 0 100 100" role="img" aria-label="Combustivel ${percent}%">
-        <circle cx="50" cy="56" r="43" fill="#f4f4f4" stroke="#111" stroke-width="5"/>
-        ${ticks.join('')}
-        <text x="${ex}" y="${ey}" class="dial-letter" fill="#e63946">E</text>
-        <text x="${fx}" y="${fy}" class="dial-letter" fill="#111">F</text>
-        <text x="50" y="40" class="dial-icon">⛽</text>
-        <line x1="50" y1="56" x2="50" y2="22" stroke="#e63946" stroke-width="3" stroke-linecap="round"
-          class="dial-needle" data-key="${key}" data-angle="${needleAngle}"/>
-        <circle cx="50" cy="56" r="5" fill="#111"/>
-      </svg>
-    `;
-  }
-
-  // Ponteiro gira de verdade: o HTML e recriado a cada render, entao o novo ponteiro nasce
-  // no angulo anterior (ou no E, na primeira vez - igual carro ligando) e transiciona ate o atual.
-  const needleAngles = {}; // playerId -> ultimo angulo mostrado
-  // Antes de recriar o HTML: guarda onde o ponteiro esta AGORA (pode estar no meio da animacao),
-  // pra continuar o giro dali em vez de pular - chegam varios snapshots seguidos ao abrir a tela.
-  function captureNeedles(container) {
-    container.querySelectorAll('.dial-needle').forEach((needle) => {
-      const m = getComputedStyle(needle).transform.match(/matrix\(([^,]+),\s*([^,]+)/);
-      if (m) needleAngles[needle.dataset.key] = (Math.atan2(Number(m[2]), Number(m[1])) * 180) / Math.PI;
-    });
-  }
-
-  function animateNeedles(container) {
-    container.querySelectorAll('.dial-needle').forEach((needle) => {
-      const key = needle.dataset.key;
-      const target = Number(needle.dataset.angle);
-      const from = needleAngles[key] != null ? needleAngles[key] : -DIAL_SWEEP;
-      needle.style.transition = 'none';
-      needle.style.transform = `rotate(${from}deg)`;
-      // eslint-disable-next-line no-unused-expressions
-      void needle.getBoundingClientRect(); // forca o navegador a aplicar o angulo inicial
-      needle.style.transition = '';
-      needle.style.transform = `rotate(${target}deg)`;
-      needleAngles[key] = target;
-    });
-  }
-
-  // Painel de mostradores lado a lado (tanque, pneu, turbo) + voltas e multas.
-  // Mesmo HTML pro seu slide e pros dos adversarios - so o texto dos avisos muda (isMe).
-  function dashboardHTML(player, finesTotal, totalLaps, isMe) {
-    const fuelColor = barColor(player.fuel.percent);
-    const tireColor = player.tire.level >= 7 ? 'var(--green)' : player.tire.level >= 5 ? 'var(--orange)' : 'var(--red)';
-
-    // As 10 bolinhas do cartao fisico, empilhadas: acesas ate o nivel atual
-    let tireSegments = '';
-    for (let i = player.tire.levelMax; i >= 1; i -= 1) {
-      tireSegments += `<div class="tire-seg" style="${i <= player.tire.level ? `background:${tireColor}` : ''}"></div>`;
-    }
-
-    const turboCaption = player.turbo.nextPosition != null
-      ? `faltam ${player.turbo.nextPosition - player.turbo.position} p/ d${player.turbo.nextDice}`
-      : 'turbo maximo';
-
-    const banners = [];
-    if (player.eliminated) {
-      banners.push(`<div class="danger-banner">ELIMINADO${isMe ? ' - voce nao pode mais rolar nesta corrida' : ''}</div>`);
-    } else {
-      if (player.fuel.empty) {
-        banners.push(`<div class="danger-banner">SEM COMBUSTIVEL${isMe ? ' - va ao posto ou peca reabastecimento ao mestre!' : ''}</div>`);
-      } else if (player.fuel.warning) {
-        banners.push(`<div class="warning-banner">${isMe ? 'Voce tem' : 'Tem'} mais ${player.fuel.rollsLeft} rodada(s) de combustivel</div>`);
-      }
-      if (player.tire.penaltyDice) {
-        banners.push(`<div class="warning-banner">Pneu gasto: dado limitado a d${player.tire.penaltyDice}</div>`);
-      }
-    }
-
-    const effects = player.activeEffects
-      .map((eff) => `<span class="badge tag-effect">${esc(eff.label)}</span>`)
-      .join('');
-
-    return `
-      <div class="card dash-card">
-        <div class="gauges">
-          <div class="gauge">
-            <div class="gauge-title">⛽ Gasolina</div>
-            ${fuelDialSVG(player.fuel.percent, player.id)}
-            <div class="fuel-percent" style="color:${fuelColor}">${player.fuel.percent}%</div>
-            <div class="gauge-caption">${player.fuel.rollsLeft} dado(s) restantes</div>
-          </div>
-
-          <div class="gauge">
-            <div class="gauge-title">🛞 Pneu</div>
-            <div class="tire-track">${tireSegments}</div>
-            <div class="gauge-caption">${esc(player.tire.label)} ${player.tire.level}/${player.tire.levelMax}<br>cai em ${player.tire.rollsUntilNextLevel}</div>
-          </div>
-
-          <div class="gauge">
-            <div class="gauge-title">🌀 Turbo</div>
-            <div class="turbo-track">
-              <div class="turbo-fill" style="height:${player.turbo.percent}%"></div>
-              <div class="turbo-dice">d${player.diceType}</div>
-            </div>
-            <div class="gauge-caption">pos ${player.turboPosition}<br>${turboCaption}</div>
-          </div>
-        </div>
-
-        <div class="dash-stats">
-          <div class="dash-stat"><span>🏁 Voltas</span><strong>${player.laps} / ${totalLaps}</strong></div>
-          <div class="dash-stat"><span>📋 Multas</span><strong>R$ ${finesTotal.toLocaleString('pt-BR')}</strong></div>
-        </div>
-        ${player.diceType < player.turboDiceType ? `<p class="small">Turbo daria d${player.turboDiceType}, mas o pneu gasto limita o dado.</p>` : ''}
-        ${banners.join('')}
-        ${effects ? `<div class="active-effects-list">${effects}</div>` : ''}
-      </div>
-    `;
-  }
-
   let latestGame = null;
   let latestPlayerRaw = null;
   let latestFines = [];
   let latestPlayersRaw = [];
   const seenRollAt = {}; // playerId -> timestamp da ultima rolagem ja animada
-  const opponentSlides = {}; // playerId -> elemento .panel-slide do adversario
-  let activeSlide = 0;
+  const panels = createPanelSlider(el.slider, el.panelTabs);
 
   function finesTotalOf(id) {
     return latestFines.filter((f) => f.playerId === id).reduce((sum, f) => sum + f.amount, 0);
   }
-
-  function slideLeft(slide) {
-    return slide.offsetLeft - el.slider.offsetLeft;
-  }
-
-  function goToSlide(index) {
-    const target = el.slider.children[index];
-    if (target) el.slider.scrollTo({ left: slideLeft(target), behavior: 'smooth' });
-  }
-
-  function updateActiveTab() {
-    Array.from(el.panelTabs.children).forEach((tab, i) => tab.classList.toggle('active', i === activeSlide));
-  }
-
-  // Descobre qual slide esta na tela pelo scroll (swipe do dedo ou toque na aba)
-  el.slider.addEventListener('scroll', () => {
-    const left = el.slider.scrollLeft;
-    const slides = Array.from(el.slider.children);
-    let best = 0;
-    slides.forEach((slide, i) => {
-      if (Math.abs(slideLeft(slide) - left) < Math.abs(slideLeft(slides[best]) - left)) best = i;
-    });
-    if (best !== activeSlide) {
-      activeSlide = best;
-      updateActiveTab();
-    }
-  }, { passive: true });
-
-  el.panelTabs.addEventListener('click', (e) => {
-    const tab = e.target.closest('.panel-tab');
-    if (tab) goToSlide(Number(tab.dataset.index));
-  });
 
   function render() {
     if (!latestGame || !latestPlayerRaw) return;
@@ -272,7 +97,7 @@ import {
 
     // Seu painel
     captureNeedles(el.myDash);
-    el.myDash.innerHTML = dashboardHTML(player, finesTotalOf(playerId), latestGame.totalLaps, true);
+    el.myDash.innerHTML = dashboardHTML(player, { finesTotal: finesTotalOf(playerId), totalLaps: latestGame.totalLaps, isMe: true });
     animateNeedles(el.myDash);
     if (document.activeElement !== el.tireSelect) el.tireSelect.value = player.tire.brand;
 
@@ -313,27 +138,14 @@ import {
       popAnimate(el.diceResult);
     }
 
-    // Paineis dos adversarios: um slide por piloto, reaproveitado entre renders
-    // (recriar o elemento faria o carrossel pular de posicao)
+    // Paineis dos adversarios: um slide por piloto, depois do seu (slide fixo no HTML)
     const opponents = latestPlayersRaw
       .filter((p) => p.id !== playerId)
       .map((p) => window.GameCalc.serializePlayer(p));
 
-    Object.keys(opponentSlides).forEach((id) => {
-      if (!opponents.some((o) => o.id === id)) {
-        opponentSlides[id].remove();
-        delete opponentSlides[id];
-      }
-    });
-
-    opponents.forEach((opp) => {
-      let slide = opponentSlides[opp.id];
-      if (!slide) {
-        slide = document.createElement('div');
-        slide.className = 'panel-slide';
-        el.slider.appendChild(slide);
-        opponentSlides[opp.id] = slide;
-      }
+    const slides = panels.syncSlides(opponents.map((o) => o.id), 1);
+    opponents.forEach((opp, i) => {
+      const slide = slides[i];
       captureNeedles(slide);
       slide.innerHTML = `
         <div class="opp-header">
@@ -341,31 +153,16 @@ import {
           <h3>${esc(opp.name)}</h3>
           <span class="small">ultimo dado: <strong>${opp.lastRoll ? opp.lastRoll.value : '—'}</strong></span>
         </div>
-        ${dashboardHTML(opp, finesTotalOf(opp.id), latestGame.totalLaps, false)}
+        ${dashboardHTML(opp, { finesTotal: finesTotalOf(opp.id), totalLaps: latestGame.totalLaps })}
       `;
       animateNeedles(slide);
     });
 
     // Abas: voce + adversarios, com o ultimo numero que cada um tirou
-    const tabs = [{ name: 'Voce', color: player.color }, ...opponents];
-    el.panelTabs.innerHTML = tabs
-      .map((p, i) => `
-        <button type="button" class="panel-tab ${i === activeSlide ? 'active' : ''}" data-index="${i}">
-          <span class="color-dot" style="background:${esc(p.color)}"></span>
-          <span>${esc(p.name)}</span>
-          ${i > 0 ? `<span class="roll-value ${p.lastRoll ? '' : 'empty'}">${p.lastRoll ? p.lastRoll.value : '—'}</span>` : ''}
-        </button>
-      `)
-      .join('');
-
-    opponents.forEach((opp, i) => {
-      if (!opp.lastRoll || seenRollAt[opp.id] === opp.lastRoll.at) return;
-      seenRollAt[opp.id] = opp.lastRoll.at;
-      if (seenRollAt[opp.id + ':init'] !== undefined) {
-        popAnimate(el.panelTabs.children[i + 1].querySelector('.roll-value'));
-      }
-      seenRollAt[opp.id + ':init'] = true;
-    });
+    panels.renderTabs([
+      { id: playerId, name: 'Voce', color: player.color, showRoll: false },
+      ...opponents.map((o) => ({ id: o.id, name: o.name, color: o.color, lastRoll: o.lastRoll, showRoll: true })),
+    ]);
   }
 
   onSnapshot(doc(db, 'games', gameId), (snap) => {
