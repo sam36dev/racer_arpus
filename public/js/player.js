@@ -100,8 +100,8 @@ import {
       const major = i === 0 || i === 4 || i === 8;
       const [x1, y1] = dialPoint(angle, 38);
       const [x2, y2] = dialPoint(angle, major ? 28 : 32);
-      const color = i === 0 ? 'var(--red)' : 'var(--text)';
-      ticks.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${major ? 4 : 2}" stroke-linecap="round"/>`);
+      const color = i === 0 ? '#e63946' : '#111';
+      ticks.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${major ? 5 : 3}"/>`);
     }
     const needleAngle = -DIAL_SWEEP + (Math.max(0, Math.min(100, percent)) / 100) * DIAL_SWEEP * 2;
     const [nx, ny] = dialPoint(needleAngle, 34);
@@ -109,13 +109,13 @@ import {
     const [fx, fy] = dialPoint(DIAL_SWEEP + 6, 21);
     return `
       <svg class="fuel-dial" viewBox="0 0 100 100" role="img" aria-label="Combustivel ${percent}%">
-        <circle cx="50" cy="56" r="44" fill="var(--bg-card-2)" stroke="var(--border)" stroke-width="3"/>
+        <circle cx="50" cy="56" r="43" fill="#f4f4f4" stroke="#111" stroke-width="5"/>
         ${ticks.join('')}
-        <text x="${ex}" y="${ey}" class="dial-letter" fill="var(--red)">E</text>
-        <text x="${fx}" y="${fy}" class="dial-letter" fill="var(--text)">F</text>
+        <text x="${ex}" y="${ey}" class="dial-letter" fill="#e63946">E</text>
+        <text x="${fx}" y="${fy}" class="dial-letter" fill="#111">F</text>
         <text x="50" y="40" class="dial-icon">⛽</text>
-        <line x1="50" y1="56" x2="${nx}" y2="${ny}" stroke="var(--red)" stroke-width="3" stroke-linecap="round" class="dial-needle"/>
-        <circle cx="50" cy="56" r="5" fill="var(--text)"/>
+        <line x1="50" y1="56" x2="${nx}" y2="${ny}" stroke="#e63946" stroke-width="3" stroke-linecap="round" class="dial-needle"/>
+        <circle cx="50" cy="56" r="5" fill="#111"/>
       </svg>
     `;
   }
