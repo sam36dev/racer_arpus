@@ -46,8 +46,8 @@ function tireDiceOverride(tireLevel) {
 // Marcas na trilha de turbo que aumentam o dado do carro.
 const TURBO_DICE_THRESHOLDS = [
   { position: 0, dice: 6 },
-  { position: 8, dice: 8 },
-  { position: 12, dice: 12 },
+  { position: 5, dice: 8 },
+  { position: 8, dice: 12 },
 ];
 
 function diceForTurboPosition(position) {

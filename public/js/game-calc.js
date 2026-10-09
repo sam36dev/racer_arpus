@@ -13,8 +13,8 @@ window.GameCalc = (function () {
 
   const TURBO_DICE_THRESHOLDS = [
     { position: 0, dice: 6 },
-    { position: 8, dice: 8 },
-    { position: 12, dice: 12 },
+    { position: 5, dice: 8 },
+    { position: 8, dice: 12 },
   ];
 
   // Espelho de ACTIVE_EFFECTS em src/luckCards.js - so pra saber label/default/transferable

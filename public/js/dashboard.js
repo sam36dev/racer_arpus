@@ -46,6 +46,55 @@ function fuelDialSVG(percent, key) {
   `;
 }
 
+// Turbo = potencia: conta-giros com o mesmo formato do relogio de gasolina. Escala de posicao
+// 0..TURBO_DIAL_MAX (o ponteiro trava no fim se passar), com as faixas de dado pintadas no arco:
+// d8 a partir da posicao 5 (laranja) e d12 a partir da 8 (vermelho, a "redline").
+// Faixas espelham TURBO_DICE_THRESHOLDS de src/constants.js.
+const TURBO_DIAL_MAX = 12;
+const TURBO_ZONES = [
+  { from: 5, to: 8, color: '#f4a261' },
+  { from: 8, to: TURBO_DIAL_MAX, color: '#e63946' },
+];
+const TURBO_LABELS = [0, 5, 8, TURBO_DIAL_MAX];
+
+function turboAngle(position) {
+  return -DIAL_SWEEP + (Math.max(0, Math.min(TURBO_DIAL_MAX, position)) / TURBO_DIAL_MAX) * DIAL_SWEEP * 2;
+}
+
+function turboDialSVG(position, diceType, key) {
+  const zones = TURBO_ZONES.map((z) => {
+    const [x1, y1] = dialPoint(turboAngle(z.from), 37);
+    const [x2, y2] = dialPoint(turboAngle(z.to), 37);
+    return `<path d="M ${x1} ${y1} A 37 37 0 0 1 ${x2} ${y2}" fill="none" stroke="${z.color}" stroke-width="6"/>`;
+  });
+
+  const ticks = [];
+  for (let i = 0; i <= TURBO_DIAL_MAX; i += 1) {
+    const major = TURBO_LABELS.includes(i);
+    const [x1, y1] = dialPoint(turboAngle(i), 39);
+    const [x2, y2] = dialPoint(turboAngle(i), major ? 29 : 33);
+    ticks.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#111" stroke-width="${major ? 4 : 2}"/>`);
+  }
+
+  const labels = TURBO_LABELS.map((i) => {
+    const [x, y] = dialPoint(turboAngle(i), 22);
+    return `<text x="${x}" y="${y}" class="dial-number">${i}</text>`;
+  });
+
+  return `
+    <svg class="fuel-dial" viewBox="0 0 100 100" role="img" aria-label="Turbo posicao ${position}">
+      <circle cx="50" cy="56" r="43" fill="#f4f4f4" stroke="#111" stroke-width="5"/>
+      ${zones.join('')}
+      ${ticks.join('')}
+      ${labels.join('')}
+      <text x="50" y="82" class="dial-dice">d${diceType}</text>
+      <line x1="50" y1="56" x2="50" y2="20" stroke="#e63946" stroke-width="3" stroke-linecap="round"
+        class="dial-needle" data-key="${esc(key)}" data-angle="${turboAngle(position)}"/>
+      <circle cx="50" cy="56" r="5" fill="#111"/>
+    </svg>
+  `;
+}
+
 // Desenho de pneu (borracha com sulcos, roda e raios) com as 10 bolinhas do cartao fisico
 // virando um anel de barrinhas em volta: acesas a partir do topo, no sentido horario, ate o nivel atual.
 function ringPoint(angleDeg, radius) {
@@ -166,11 +215,9 @@ export function dashboardHTML(player, { finesTotal, totalLaps, isMe = false, sho
 
         <div class="gauge">
           <div class="gauge-title">🌀 Turbo</div>
-          <div class="turbo-track">
-            <div class="turbo-fill" style="height:${player.turbo.percent}%"></div>
-            <div class="turbo-dice">d${player.diceType}</div>
-          </div>
-          <div class="gauge-caption">pos ${player.turboPosition}<br>${turboCaption}</div>
+          ${turboDialSVG(player.turboPosition, player.diceType, `${player.id}:turbo`)}
+          <div class="fuel-percent" style="color:var(--purple)">pos ${player.turboPosition}</div>
+          <div class="gauge-caption">${turboCaption}</div>
         </div>
       </div>
 

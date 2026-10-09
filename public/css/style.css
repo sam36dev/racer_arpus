@@ -417,31 +417,9 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 /* Pneu: desenho do pneu com o anel de 10 barrinhas (nivel) em volta */
 .tire-svg { width: 100%; max-width: 120px; height: auto; display: block; }
 
-/* Turbo: barra vertical ate o proximo salto de dado, dado efetivo no meio */
-.turbo-track {
-  position: relative;
-  width: 44px;
-  height: 140px;
-  border-radius: 999px;
-  background: var(--bg-card-2);
-  border: 1px solid var(--border);
-  overflow: hidden;
-}
-.turbo-fill {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  background: var(--purple);
-  transition: height 0.4s ease;
-}
-.turbo-dice {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-}
+/* Turbo: conta-giros (reaproveita .fuel-dial e .dial-needle) */
+.dial-number { font-size: 8px; font-weight: 700; fill: #111; text-anchor: middle; dominant-baseline: middle; }
+.dial-dice { font-size: 13px; font-weight: 800; fill: #111; text-anchor: middle; dominant-baseline: middle; }
 
 .dash-stats {
   display: grid;
