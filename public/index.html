@@ -90,6 +90,7 @@ btnCreate.addEventListener('click', async () => {
   });
   const masterPlayer = await playerRes.json();
   localStorage.setItem(`racer-my-player-${game.id}`, masterPlayer.id);
+  localStorage.setItem(`racer-host-key-${game.id}`, game.hostKey);
 
   window.location.href = `/master.html?game=${game.id}`;
 });

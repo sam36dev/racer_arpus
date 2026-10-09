@@ -19,11 +19,13 @@ import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider }
   }
 
   const myPlayerId = localStorage.getItem(`racer-my-player-${gameId}`);
+  // Chave do mestre (gerada ao criar a corrida) - o servidor so aceita acoes de mestre com ela.
+  const hostKey = localStorage.getItem(`racer-host-key-${gameId}`) || '';
 
   const api = (playerId, action, body) =>
     fetch(`/api/games/${gameId}/players/${playerId}/${action}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Host-Key': hostKey },
       body: JSON.stringify(body || {}),
     }).then(async (res) => {
       const data = await res.json();
@@ -35,7 +37,7 @@ import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider }
   const apiPath = (path, body) =>
     fetch(`/api/games/${gameId}${path}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Host-Key': hostKey },
       body: JSON.stringify(body || {}),
     }).then(async (res) => {
       const data = await res.json();
@@ -469,7 +471,7 @@ import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider }
     if (!name) return;
     await fetch(`/api/games/${gameId}/players`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Host-Key': hostKey },
       body: JSON.stringify({ name }),
     });
     nameInput.value = '';

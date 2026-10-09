@@ -21,10 +21,20 @@ function wrap(fn) {
       const result = await fn(req, res);
       res.json(result);
     } catch (err) {
-      const status = err.code === 'GAME_NOT_FOUND' || err.code === 'PLAYER_NOT_FOUND' ? 404 : 400;
+      const status = err.code === 'GAME_NOT_FOUND' || err.code === 'PLAYER_NOT_FOUND' ? 404
+        : err.code === 'HOST_ONLY' ? 403 : 400;
       res.status(status).json({ error: err.message, code: err.code });
     }
   };
+}
+
+// Rotas de mestre: o piloto so rola o dado (pedido do usuario) - todo o resto exige a chave
+// do mestre no header X-Host-Key (gerada no createGame, guardada no navegador de quem criou).
+function requireHost(req, res, next) {
+  game
+    .checkHostKey(req.params.gameId, req.get('X-Host-Key'))
+    .then(() => next())
+    .catch((err) => res.status(err.code === 'HOST_ONLY' ? 403 : 400).json({ error: err.message, code: err.code }));
 }
 
 app.post(
@@ -58,6 +68,7 @@ app.post(
 
 app.post(
   '/api/games/:gameId/players/:playerId/refuel',
+  requireHost,
   wrap(async (req) => {
     const p = await game.refuel(req.params.gameId, req.params.playerId);
     return game.serializePlayer(p);
@@ -66,6 +77,7 @@ app.post(
 
 app.post(
   '/api/games/:gameId/players/:playerId/repair-tire',
+  requireHost,
   wrap(async (req) => {
     const p = await game.repairTire(req.params.gameId, req.params.playerId);
     return game.serializePlayer(p);
@@ -74,6 +86,7 @@ app.post(
 
 app.post(
   '/api/games/:gameId/players/:playerId/damage-tire',
+  requireHost,
   wrap(async (req) => {
     const p = await game.damageTire(req.params.gameId, req.params.playerId);
     return game.serializePlayer(p);
@@ -82,6 +95,7 @@ app.post(
 
 app.post(
   '/api/games/:gameId/players/:playerId/eliminate',
+  requireHost,
   wrap(async (req) => {
     const p = await game.eliminatePlayer(req.params.gameId, req.params.playerId, req.body.pin);
     return game.serializePlayer(p);
@@ -90,6 +104,7 @@ app.post(
 
 app.post(
   '/api/games/:gameId/players/:playerId/change-tire-brand',
+  requireHost,
   wrap(async (req) => {
     const p = await game.changeTireBrand(req.params.gameId, req.params.playerId, req.body.brand);
     return game.serializePlayer(p);
@@ -98,6 +113,7 @@ app.post(
 
 app.post(
   '/api/games/:gameId/players/:playerId/upgrade-turbo',
+  requireHost,
   wrap(async (req) => {
     const delta = req.body.delta != null ? Number(req.body.delta) : 1;
     const p = await game.upgradeTurbo(req.params.gameId, req.params.playerId, delta);
@@ -107,11 +123,13 @@ app.post(
 
 app.post(
   '/api/games/:gameId/players/:playerId/complete-lap',
+  requireHost,
   wrap(async (req) => game.completeLap(req.params.gameId, req.params.playerId))
 );
 
 app.post(
   '/api/games/:gameId/players/:playerId/fine',
+  requireHost,
   wrap(async (req) => {
     const fines = await game.applyFine(
       req.params.gameId,
@@ -125,6 +143,7 @@ app.post(
 
 app.post(
   '/api/games/:gameId/players/:playerId/clear-fines',
+  requireHost,
   wrap(async (req) => {
     const fines = await game.clearFines(req.params.gameId, req.params.playerId);
     return { fines };
@@ -133,6 +152,7 @@ app.post(
 
 app.post(
   '/api/games/:gameId/fines/:fineId/remove',
+  requireHost,
   wrap(async (req) => {
     const fines = await game.removeFine(req.params.gameId, req.params.fineId);
     return { fines };
@@ -148,6 +168,7 @@ app.get(
 
 app.post(
   '/api/games/:gameId/players/:playerId/activate-card',
+  requireHost,
   wrap(async (req) => {
     const p = await game.activateCard(
       req.params.gameId,
@@ -162,6 +183,8 @@ app.post(
 app.post(
   '/api/games/:gameId/players/:playerId/clear-effect',
   wrap(async (req) => {
+    // Unica excecao: o proprio piloto fecha o aviso "troque de lugar" (desliga o 'watching').
+    if (req.body.field !== 'watching') await game.checkHostKey(req.params.gameId, req.get('X-Host-Key'));
     const p = await game.clearEffect(req.params.gameId, req.params.playerId, req.body.field);
     return game.serializePlayer(p);
   })
@@ -169,6 +192,7 @@ app.post(
 
 app.post(
   '/api/games/:gameId/players/:playerId/transfer-effect',
+  requireHost,
   wrap(async (req) => {
     const { to } = await game.transferEffect(
       req.params.gameId,

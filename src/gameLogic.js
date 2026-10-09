@@ -39,6 +39,12 @@ function gameRef(gameId) {
   return db.collection('games').doc(gameId);
 }
 
+// Chave do mestre fica FORA de games/{id} (que e publico pra leitura) - gameSecrets nao tem
+// regra de leitura no firestore.rules, entao so o backend (Admin SDK) enxerga.
+function gameSecretRef(gameId) {
+  return db.collection('gameSecrets').doc(gameId);
+}
+
 function playerRef(gameId, playerId) {
   return gameRef(gameId).collection('players').doc(playerId);
 }
@@ -66,7 +72,20 @@ async function createGame(name) {
     winnerPlayerId: null,
     createdAt: new Date().toISOString(),
   });
-  return getGame(id);
+  const hostKey = nanoid(24);
+  await gameSecretRef(id).set({ hostKey });
+  // hostKey so volta nesta resposta - quem criou guarda no localStorage e manda nas acoes de mestre
+  return { ...(await getGame(id)), hostKey };
+}
+
+// Acoes de mestre (abastecer, pneu, potencia, volta, multa, cartas...) exigem a chave do mestre.
+// Corrida criada antes da chave existir nao tem gameSecrets -> continua liberada.
+async function checkHostKey(gameId, hostKey) {
+  const snap = await gameSecretRef(gameId).get();
+  if (!snap.exists) return;
+  if (!hostKey || hostKey !== snap.data().hostKey) {
+    throw new GameError('HOST_ONLY', 'So o mestre da corrida pode fazer isso');
+  }
 }
 
 async function getGame(gameId) {
@@ -714,6 +733,7 @@ async function serializeGame(gameId) {
 module.exports = {
   GameError,
   createGame,
+  checkHostKey,
   getGame,
   addPlayer,
   getPlayer,
