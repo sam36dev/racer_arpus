@@ -93,7 +93,7 @@ import {
     return [50 + radius * Math.sin(rad), 56 - radius * Math.cos(rad)];
   }
 
-  function fuelDialSVG(percent) {
+  function fuelDialSVG(percent, key) {
     const ticks = [];
     for (let i = 0; i <= 8; i += 1) {
       const angle = -DIAL_SWEEP + (i * DIAL_SWEEP * 2) / 8;
@@ -104,7 +104,6 @@ import {
       ticks.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${major ? 5 : 3}"/>`);
     }
     const needleAngle = -DIAL_SWEEP + (Math.max(0, Math.min(100, percent)) / 100) * DIAL_SWEEP * 2;
-    const [nx, ny] = dialPoint(needleAngle, 34);
     const [ex, ey] = dialPoint(-DIAL_SWEEP - 6, 21);
     const [fx, fy] = dialPoint(DIAL_SWEEP + 6, 21);
     return `
@@ -114,10 +113,38 @@ import {
         <text x="${ex}" y="${ey}" class="dial-letter" fill="#e63946">E</text>
         <text x="${fx}" y="${fy}" class="dial-letter" fill="#111">F</text>
         <text x="50" y="40" class="dial-icon">⛽</text>
-        <line x1="50" y1="56" x2="${nx}" y2="${ny}" stroke="#e63946" stroke-width="3" stroke-linecap="round" class="dial-needle"/>
+        <line x1="50" y1="56" x2="50" y2="22" stroke="#e63946" stroke-width="3" stroke-linecap="round"
+          class="dial-needle" data-key="${key}" data-angle="${needleAngle}"/>
         <circle cx="50" cy="56" r="5" fill="#111"/>
       </svg>
     `;
+  }
+
+  // Ponteiro gira de verdade: o HTML e recriado a cada render, entao o novo ponteiro nasce
+  // no angulo anterior (ou no E, na primeira vez - igual carro ligando) e transiciona ate o atual.
+  const needleAngles = {}; // playerId -> ultimo angulo mostrado
+  // Antes de recriar o HTML: guarda onde o ponteiro esta AGORA (pode estar no meio da animacao),
+  // pra continuar o giro dali em vez de pular - chegam varios snapshots seguidos ao abrir a tela.
+  function captureNeedles(container) {
+    container.querySelectorAll('.dial-needle').forEach((needle) => {
+      const m = getComputedStyle(needle).transform.match(/matrix\(([^,]+),\s*([^,]+)/);
+      if (m) needleAngles[needle.dataset.key] = (Math.atan2(Number(m[2]), Number(m[1])) * 180) / Math.PI;
+    });
+  }
+
+  function animateNeedles(container) {
+    container.querySelectorAll('.dial-needle').forEach((needle) => {
+      const key = needle.dataset.key;
+      const target = Number(needle.dataset.angle);
+      const from = needleAngles[key] != null ? needleAngles[key] : -DIAL_SWEEP;
+      needle.style.transition = 'none';
+      needle.style.transform = `rotate(${from}deg)`;
+      // eslint-disable-next-line no-unused-expressions
+      void needle.getBoundingClientRect(); // forca o navegador a aplicar o angulo inicial
+      needle.style.transition = '';
+      needle.style.transform = `rotate(${target}deg)`;
+      needleAngles[key] = target;
+    });
   }
 
   // Painel de mostradores lado a lado (tanque, pneu, turbo) + voltas e multas.
@@ -159,7 +186,7 @@ import {
         <div class="gauges">
           <div class="gauge">
             <div class="gauge-title">⛽ Gasolina</div>
-            ${fuelDialSVG(player.fuel.percent)}
+            ${fuelDialSVG(player.fuel.percent, player.id)}
             <div class="fuel-percent" style="color:${fuelColor}">${player.fuel.percent}%</div>
             <div class="gauge-caption">${player.fuel.rollsLeft} dado(s) restantes</div>
           </div>
@@ -244,7 +271,9 @@ import {
     el.gameStatus.textContent = `Corrida: ${latestGame.name} — status: ${latestGame.status}`;
 
     // Seu painel
+    captureNeedles(el.myDash);
     el.myDash.innerHTML = dashboardHTML(player, finesTotalOf(playerId), latestGame.totalLaps, true);
+    animateNeedles(el.myDash);
     if (document.activeElement !== el.tireSelect) el.tireSelect.value = player.tire.brand;
 
     const playerFines = latestFines.filter((f) => f.playerId === playerId);
@@ -305,6 +334,7 @@ import {
         el.slider.appendChild(slide);
         opponentSlides[opp.id] = slide;
       }
+      captureNeedles(slide);
       slide.innerHTML = `
         <div class="opp-header">
           <span class="color-dot" style="background:${esc(opp.color)}"></span>
@@ -313,6 +343,7 @@ import {
         </div>
         ${dashboardHTML(opp, finesTotalOf(opp.id), latestGame.totalLaps, false)}
       `;
+      animateNeedles(slide);
     });
 
     // Abas: voce + adversarios, com o ultimo numero que cada um tirou
