@@ -89,7 +89,9 @@ function effectiveDice(turboDice, tireLevel, diceLock) {
   return override != null ? override : turboDice;
 }
 
+// Mestre escolhe o tamanho da corrida ao criar (5 ou 10 voltas); TOTAL_LAPS e o padrao.
 const TOTAL_LAPS = 10;
+const LAPS_OPTIONS = [5, 10];
 
 // Senha que o mestre digita pra eliminar um piloto na mao (evita clique acidental).
 // Checada so no backend - nao espelhar em game-calc.js.
@@ -103,6 +105,7 @@ module.exports = {
   TIRE_UPGRADE_ORDER,
   TURBO_DICE_THRESHOLDS,
   TOTAL_LAPS,
+  LAPS_OPTIONS,
   ELIMINATE_PIN,
   fuelConsumptionPerRoll,
   diceForTurboPosition,

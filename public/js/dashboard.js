@@ -168,6 +168,13 @@ export function animateNeedles(container) {
   });
 }
 
+// `laps` no banco = voltas COMPLETAS (comeca em 0). Na tela mostra a volta em que o piloto ESTA,
+// entao a corrida comeca na volta 1; completou a ultima -> corrida concluida.
+export function lapLabel(laps, totalLaps) {
+  if (laps >= totalLaps) return `${totalLaps} / ${totalLaps} ✔`;
+  return `${laps + 1} / ${totalLaps}`;
+}
+
 // Mostradores lado a lado (gasolina, pneu, turbo) + voltas e multas.
 // isMe so muda o texto dos avisos; showEffects=false quando a tela ja lista os efeitos com botoes (mestre).
 export function dashboardHTML(player, { finesTotal, totalLaps, isMe = false, showEffects = true }) {
@@ -222,7 +229,7 @@ export function dashboardHTML(player, { finesTotal, totalLaps, isMe = false, sho
       </div>
 
       <div class="dash-stats">
-        <div class="dash-stat"><span>🏁 Voltas</span><strong>${player.laps} / ${totalLaps}</strong></div>
+        <div class="dash-stat"><span>🏁 Volta</span><strong>${lapLabel(player.laps, totalLaps)}</strong></div>
         <div class="dash-stat"><span>📋 Multas</span><strong>R$ ${finesTotal.toLocaleString('pt-BR')}</strong></div>
       </div>
       ${player.diceType < player.turboDiceType ? `<p class="small">A potencia daria d${player.turboDiceType}, mas o pneu gasto limita o dado.</p>` : ''}

@@ -9,6 +9,7 @@ const {
   TIRE_LEVEL_MAX,
   TIRE_BRANDS,
   TOTAL_LAPS,
+  LAPS_OPTIONS,
   ELIMINATE_PIN,
   fuelConsumptionPerRoll,
   diceForTurboPosition,
@@ -63,12 +64,16 @@ async function newGameCode() {
   throw new GameError('GAME_CODE_EXHAUSTED', 'Nao consegui gerar um codigo livre, tente de novo');
 }
 
-async function createGame(name) {
+async function createGame(name, totalLaps) {
+  const laps = totalLaps == null ? TOTAL_LAPS : Number(totalLaps);
+  if (!LAPS_OPTIONS.includes(laps)) {
+    throw new GameError('INVALID_LAPS', `Numero de voltas invalido (opcoes: ${LAPS_OPTIONS.join(' ou ')})`);
+  }
   const id = await newGameCode();
   await gameRef(id).set({
     name: name || 'Corrida',
     status: 'lobby',
-    totalLaps: TOTAL_LAPS,
+    totalLaps: laps,
     winnerPlayerId: null,
     createdAt: new Date().toISOString(),
   });

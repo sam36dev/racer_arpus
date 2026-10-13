@@ -33,6 +33,11 @@
     <input type="text" id="game-name" placeholder="Ex: Corrida de sabado" />
     <label for="master-player-name">Seu nome (piloto)</label>
     <input type="text" id="master-player-name" placeholder="Seu nome" />
+    <label for="total-laps">Numero de voltas</label>
+    <select id="total-laps">
+      <option value="10">10 voltas</option>
+      <option value="5">5 voltas</option>
+    </select>
     <button class="full-width" id="btn-create">Criar corrida</button>
   </div>
 
@@ -79,7 +84,7 @@ btnCreate.addEventListener('click', async () => {
   const res = await fetch('/api/games', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, totalLaps: Number(document.getElementById('total-laps').value) }),
   });
   const game = await res.json();
 

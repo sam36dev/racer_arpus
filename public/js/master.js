@@ -225,7 +225,7 @@ import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider }
           <div>
             <div class="btn-row">
               <button class="secondary btn-refuel">⛽ Abastecer +1</button>
-              <button class="secondary btn-lap">🏁 +1 volta</button>
+              <button class="secondary btn-lap">🏁 Completou a volta</button>
             </div>
 
             <div class="bar-label mt-24"><span>🛞 Pneu</span></div>
