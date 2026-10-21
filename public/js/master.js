@@ -415,7 +415,7 @@ import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider }
   function render() {
     if (!latestGame) return;
 
-    gameNameEl.textContent = latestGame.name;
+    gameNameEl.textContent = latestGame.name + (latestGame.raceType === 'porsche' ? ' — 🏎️ Porsche Cup' : '');
     gameStatusEl.textContent = latestGame.status;
     gameStatusEl.className = `status-pill status-${latestGame.status}`;
 

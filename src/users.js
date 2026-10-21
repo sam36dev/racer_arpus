@@ -46,6 +46,8 @@ async function signup(rawUsername, password, confirmPassword) {
     passwordHash,
     wins: 0,
     racesPlayed: 0,
+    porscheWins: 0,
+    porscheRacesPlayed: 0,
     lapsCompleted: 0,
     finesReceived: 0,
     createdAt: new Date().toISOString(),
@@ -88,8 +90,10 @@ async function incrementStats(username, deltas) {
   });
 }
 
+// Devolve as duas competicoes; o front ordena cada tabela pelo campo de vitorias dela.
+// Sem orderBy no Firestore de proposito: contas antigas nao tem porscheWins e sumiriam da query.
 async function listRanking() {
-  const snap = await usersCol().orderBy('wins', 'desc').get();
+  const snap = await usersCol().get();
   return snap.docs.map((doc) => {
     const data = doc.data();
     return {
@@ -97,6 +101,8 @@ async function listRanking() {
       displayName: data.displayName,
       wins: data.wins || 0,
       racesPlayed: data.racesPlayed || 0,
+      porscheWins: data.porscheWins || 0,
+      porscheRacesPlayed: data.porscheRacesPlayed || 0,
     };
   });
 }

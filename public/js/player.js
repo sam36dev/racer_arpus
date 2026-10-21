@@ -88,7 +88,7 @@ import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider }
 
     el.color.style.background = player.color;
     el.name.textContent = player.name;
-    el.gameStatus.textContent = `Corrida: ${latestGame.name} — status: ${latestGame.status}`;
+    el.gameStatus.textContent = `Corrida: ${latestGame.name}${latestGame.raceType === 'porsche' ? ' (🏎️ Porsche Cup)' : ''} — status: ${latestGame.status}`;
 
     // Seu painel
     captureNeedles(el.myDash);

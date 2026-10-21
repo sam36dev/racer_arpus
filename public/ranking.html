@@ -13,6 +13,8 @@
   .pos-1 { color: #ffd166; }
   .pos-2 { color: #cfd8dc; }
   .pos-3 { color: #d4915d; }
+  .champion { margin: 12px 0; padding: 12px; border: 1px solid var(--border); border-radius: 10px; }
+  .champion strong { color: #ffd166; font-size: 1.1rem; }
 </style>
 </head>
 <body>
@@ -22,16 +24,34 @@
   <p class="subtitle">Quem mais venceu corridas por aqui</p>
 
   <div class="card">
+    <h3>🏁 Corrida padrao</h3>
+    <p class="small">Ranking normal</p>
+    <div class="champion" id="champion-padrao"></div>
     <div style="overflow-x:auto;">
       <table>
         <thead>
           <tr><th class="pos">#</th><th>Piloto</th><th>Vitorias</th><th>Corridas</th></tr>
         </thead>
-        <tbody id="ranking-body"></tbody>
+        <tbody id="ranking-padrao"></tbody>
       </table>
     </div>
-    <p class="small mt-24" id="empty-msg" style="display:none;">Ninguem tem conta ainda — crie a sua em "Entrar / Criar conta".</p>
   </div>
+
+  <div class="card">
+    <h3>🏎️ Porsche Cup</h3>
+    <p class="small">So as corridas da Porsche Cup</p>
+    <div class="champion" id="champion-porsche"></div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr><th class="pos">#</th><th>Piloto</th><th>Vitorias</th><th>Corridas</th></tr>
+        </thead>
+        <tbody id="ranking-porsche"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <p class="small mt-24" id="empty-msg" style="display:none;">Ninguem tem conta ainda — crie a sua em "Entrar / Criar conta".</p>
 </div>
 
 <script src="/js/ranking.js"></script>

@@ -39,7 +39,7 @@ function requireHost(req, res, next) {
 
 app.post(
   '/api/games',
-  wrap(async (req) => game.createGame(req.body.name, req.body.totalLaps))
+  wrap(async (req) => game.createGame(req.body.name, req.body.totalLaps, req.body.raceType))
 );
 
 app.get(

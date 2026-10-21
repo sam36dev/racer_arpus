@@ -93,6 +93,11 @@ function effectiveDice(turboDice, tireLevel, diceLock) {
 const TOTAL_LAPS = 10;
 const LAPS_OPTIONS = [5, 10];
 
+// Tipo de corrida escolhido ao criar. As regras sao as mesmas - so muda em qual ranking
+// a corrida conta (vitorias/corridas da Porsche Cup ficam em campos separados na conta).
+const RACE_TYPES = ['padrao', 'porsche'];
+const DEFAULT_RACE_TYPE = 'padrao';
+
 // Senha que o mestre digita pra eliminar um piloto na mao (evita clique acidental).
 // Checada so no backend - nao espelhar em game-calc.js.
 const ELIMINATE_PIN = '4755';
@@ -106,6 +111,8 @@ module.exports = {
   TURBO_DICE_THRESHOLDS,
   TOTAL_LAPS,
   LAPS_OPTIONS,
+  RACE_TYPES,
+  DEFAULT_RACE_TYPE,
   ELIMINATE_PIN,
   fuelConsumptionPerRoll,
   diceForTurboPosition,

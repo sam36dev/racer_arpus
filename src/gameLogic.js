@@ -10,6 +10,8 @@ const {
   TIRE_BRANDS,
   TOTAL_LAPS,
   LAPS_OPTIONS,
+  RACE_TYPES,
+  DEFAULT_RACE_TYPE,
   ELIMINATE_PIN,
   fuelConsumptionPerRoll,
   diceForTurboPosition,
@@ -64,16 +66,21 @@ async function newGameCode() {
   throw new GameError('GAME_CODE_EXHAUSTED', 'Nao consegui gerar um codigo livre, tente de novo');
 }
 
-async function createGame(name, totalLaps) {
+async function createGame(name, totalLaps, raceType) {
   const laps = totalLaps == null ? TOTAL_LAPS : Number(totalLaps);
   if (!LAPS_OPTIONS.includes(laps)) {
     throw new GameError('INVALID_LAPS', `Numero de voltas invalido (opcoes: ${LAPS_OPTIONS.join(' ou ')})`);
+  }
+  const type = raceType == null ? DEFAULT_RACE_TYPE : raceType;
+  if (!RACE_TYPES.includes(type)) {
+    throw new GameError('INVALID_RACE_TYPE', `Tipo de corrida invalido (opcoes: ${RACE_TYPES.join(' ou ')})`);
   }
   const id = await newGameCode();
   await gameRef(id).set({
     name: name || 'Corrida',
     status: 'lobby',
     totalLaps: laps,
+    raceType: type,
     winnerPlayerId: null,
     createdAt: new Date().toISOString(),
   });
@@ -99,8 +106,13 @@ async function getGame(gameId) {
   return { id: snap.id, ...snap.data() };
 }
 
+// Corrida sem raceType (criada antes do campo existir) conta como padrao.
+function isPorsche(game) {
+  return game.raceType === 'porsche';
+}
+
 async function addPlayer(gameId, name, color, userId) {
-  await getGame(gameId);
+  const game = await getGame(gameId);
   const id = nanoid(8);
   await playerRef(gameId, id).set({
     name,
@@ -118,9 +130,10 @@ async function addPlayer(gameId, name, color, userId) {
   });
 
   if (userId) {
-    await users.incrementStats(userId, { racesPlayed: 1 });
+    await users.incrementStats(userId, isPorsche(game) ? { porscheRacesPlayed: 1 } : { racesPlayed: 1 });
     const user = await users.getUser(userId);
-    if (user.racesPlayed >= 10) {
+    // Veterano conta corridas das duas competicoes juntas
+    if ((user.racesPlayed || 0) + (user.porscheRacesPlayed || 0) >= 10) {
       await achievements.checkAutoAchievements(userId, 'races_played_10');
     }
   }
@@ -390,7 +403,7 @@ async function completeLap(gameId, playerId, delta = 1) {
   const pRef = playerRef(gameId, playerId);
   const gRef = gameRef(gameId);
 
-  const { userId, won, eliminated, reachedD2 } = await db.runTransaction(async (t) => {
+  const { userId, won, eliminated, reachedD2, porsche } = await db.runTransaction(async (t) => {
     const [playerSnap, gameSnap] = await Promise.all([t.get(pRef), t.get(gRef)]);
     if (!playerSnap.exists) throw new GameError('PLAYER_NOT_FOUND', 'Jogador nao encontrado');
     if (!gameSnap.exists) throw new GameError('GAME_NOT_FOUND', 'Jogo nao encontrado');
@@ -406,13 +419,19 @@ async function completeLap(gameId, playerId, delta = 1) {
       won = true;
     }
 
-    return { userId: player.userId, won, eliminated: !!player.eliminated, reachedD2: !!player.reachedD2 };
+    return {
+      userId: player.userId,
+      won,
+      eliminated: !!player.eliminated,
+      reachedD2: !!player.reachedD2,
+      porsche: isPorsche(game),
+    };
   });
 
   if (userId) {
     await users.incrementStats(userId, { lapsCompleted: delta });
     if (won) {
-      await awardWin(userId, eliminated);
+      await awardWin(userId, eliminated, porsche);
       await achievements.checkAutoAchievements(userId, 'win_by_laps'); // ultimo sobrevivente nao conta
       if (reachedD2) await achievements.checkAutoAchievements(userId, 'win_by_laps_after_d2');
     }
@@ -424,12 +443,14 @@ async function completeLap(gameId, playerId, delta = 1) {
 
 // Credita a vitoria na conta do usuario (ranking + conquistas). Usado tanto por quem
 // completa as voltas quanto por quem sobra sozinho depois que todos os outros foram eliminados.
-async function awardWin(userId, eliminated) {
-  await users.incrementStats(userId, { wins: 1 });
+// Porsche Cup conta em porscheWins (ranking separado) e nao entra na disputa da Lenda da Mesa,
+// que e do ranking normal.
+async function awardWin(userId, eliminated, porsche) {
+  await users.incrementStats(userId, porsche ? { porscheWins: 1 } : { wins: 1 });
   const user = await users.getUser(userId);
-  if (user.wins === 1) await achievements.checkAutoAchievements(userId, 'first_win');
+  if ((user.wins || 0) + (user.porscheWins || 0) === 1) await achievements.checkAutoAchievements(userId, 'first_win');
   if (!eliminated) await achievements.checkAutoAchievements(userId, 'finish_no_elimination');
-  await achievements.updateLendaDaMesa(userId);
+  if (!porsche) await achievements.updateLendaDaMesa(userId);
 }
 
 // Se todos os outros foram eliminados, o ultimo piloto vivo vence a corrida automaticamente.
@@ -446,11 +467,11 @@ async function checkLastStanding(gameId) {
     if (alive.length !== 1) return null;
 
     t.update(gRef, { status: 'finished', winnerPlayerId: alive[0].id });
-    return alive[0].data();
+    return { ...alive[0].data(), porsche: isPorsche(gameSnap.data()) };
   });
 
   if (winner && winner.userId) {
-    await awardWin(winner.userId, false);
+    await awardWin(winner.userId, false, winner.porsche);
     await achievements.checkAutoAchievements(winner.userId, 'win_last_standing');
   }
   if (winner) await onRaceFinished(gameId);
@@ -728,6 +749,7 @@ async function serializeGame(gameId) {
     name: game.name,
     status: game.status,
     totalLaps: game.totalLaps,
+    raceType: game.raceType || DEFAULT_RACE_TYPE,
     winnerPlayerId: game.winnerPlayerId,
     players: players.map(serializePlayer),
     fines,

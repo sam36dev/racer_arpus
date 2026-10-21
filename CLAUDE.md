@@ -23,7 +23,7 @@ Três telas:
 ### Modelo no Firestore
 
 ```
-games/{gameId}          name, status (lobby|finished), totalLaps, winnerPlayerId
+games/{gameId}          name, status (lobby|finished), totalLaps, raceType (padrao|porsche), winnerPlayerId
   players/{playerId}    name, color, userId, diceType, turboPosition,
                         fuelCurrent, tireBrand, tireLevel, tireRollsUsed,
                         eliminated, laps, finesInRace, reachedD2, refuelsInRace, lastRoll { value, diceType, at },
@@ -35,7 +35,7 @@ games/{gameId}          name, status (lobby|finished), totalLaps, winnerPlayerId
   fines/{fineId}        playerId, amount, reason
   luckCards/{logId}     playerId, cardId, name, icon, description, appliedAt
 users/{username}        displayName, passwordHash, wins, racesPlayed,
-                        lapsCompleted, finesReceived
+                        porscheWins, porscheRacesPlayed, lapsCompleted, finesReceived
   achievements/{id}     unlockedAt, grantedBy ('auto' ou username do admin)
 trophyHolders/{achievementId}  username, since   (dono atual de troféu transferível)
 gameSecrets/{gameId}    hostKey   (chave do mestre — sem regra de leitura, só o backend vê)
@@ -103,7 +103,7 @@ Cartas novas o usuário manda aos poucos (nome + efeito); adiciona em `CATALOG` 
 - Login é usuário/senha sem email (app entre amigos): bcrypt + JWT de 90 dias, em [src/auth.js](src/auth.js). Token e username ficam no `localStorage` (`racer-token`, `racer-username`).
 - Jogar sem conta funciona (`optionalAuth`), mas aí nada entra em ranking nem em conquistas — quem não tem `userId` não gera stats.
 - Conquistas em [src/achievements.js](src/achievements.js): `auto` dispara por evento (`checkAutoAchievements(username, code)` chamado dentro do gameLogic) e `manual` só o admin concede. O catálogo atual é **placeholder** até chegar a lista real de troféus.
-- Ranking mostra só **corridas jogadas** e **vitórias** — não existe estatística de derrota/eliminação de propósito (pedido do usuário). `lapsCompleted`/`finesReceived` continuam gravados na conta (sem uso hoje, reservados pra futuras conquistas).
+- Ranking mostra só **corridas jogadas** e **vitórias** — não existe estatística de derrota/eliminação de propósito (pedido do usuário). São **duas competições**: ao criar a corrida o mestre escolhe **Corrida padrão** ou **Porsche Cup** (`RACE_TYPES`, salvo em `raceType`; corrida antiga sem o campo conta como padrão). As regras do jogo são idênticas — só muda o ranking: Porsche Cup grava em `porscheWins`/`porscheRacesPlayed` em vez de `wins`/`racesPlayed`. A tela de ranking mostra uma tabela por competição, cada uma com o **maior vencedor** em destaque. Primeira Vitória e Veterano somam as duas competições; Lenda da Mesa é só do ranking normal. `lapsCompleted`/`finesReceived` continuam gravados na conta (sem uso hoje, reservados pra futuras conquistas).
 - Pé de Chumbo conta multas **por corrida** em `players/{id}.finesInRace` (não pela coleção `fines`, que o mestre apaga quando o piloto paga). `removeFine` (engano) desconta, `clearFines` (pagamento) não. Checado em `onRaceFinished()`.
 - **Lenda da Mesa** é o único troféu `type: 'transferable'`: só um dono por vez, quem tem mais vitórias (mínimo 3). Empate não tira do dono atual. `updateLendaDaMesa()` roda depois de cada vitória (`awardWin`), apaga o troféu do dono antigo e grava no novo; o dono atual fica em `trophyHolders/lenda-da-mesa`. Admin não concede (`grantManual` só aceita `manual`).
 - Admin = username listado em `ADMIN_USERNAMES` no `.env`.
