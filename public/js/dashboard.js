@@ -175,7 +175,26 @@ export function lapLabel(laps, totalLaps) {
   return `${laps + 1} / ${totalLaps}`;
 }
 
-// Mostradores lado a lado (gasolina, pneu, turbo) + voltas e multas.
+export function brl(value) {
+  return `R$ ${Number(value || 0).toLocaleString('pt-BR')}`;
+}
+
+// Extrato de dinheiro (games/{id}/transactions). Com playerId, mostra so o que envolve esse
+// piloto, com sinal de entrada/saida; sem playerId, mostra tudo (painel do mestre).
+export function transactionsHTML(transactions, playerId) {
+  const list = playerId ? transactions.filter((t) => t.from === playerId || t.to === playerId) : transactions;
+  if (!list.length) return '<p class="small">Nenhuma movimentacao ainda.</p>';
+  return list
+    .map((t) => {
+      const reason = t.reason ? ` — ${esc(t.reason)}` : '';
+      if (!playerId) return `<div>${esc(t.fromName)} ➜ ${esc(t.toName)}: <strong>${brl(t.amount)}</strong>${reason}</div>`;
+      const incoming = t.to === playerId;
+      return `<div class="${incoming ? 'tx-in' : 'tx-out'}">${incoming ? '+' : '−'} ${brl(t.amount)} ${incoming ? 'de' : 'para'} ${esc(incoming ? t.fromName : t.toName)}${reason}</div>`;
+    })
+    .join('');
+}
+
+// Mostradores lado a lado (gasolina, pneu, turbo) + voltas, multas e saldo.
 // isMe so muda o texto dos avisos; showEffects=false quando a tela ja lista os efeitos com botoes (mestre).
 export function dashboardHTML(player, { finesTotal, totalLaps, isMe = false, showEffects = true }) {
   const fuelColor = barColor(player.fuel.percent);
@@ -231,6 +250,7 @@ export function dashboardHTML(player, { finesTotal, totalLaps, isMe = false, sho
       <div class="dash-stats">
         <div class="dash-stat"><span>🏁 Volta</span><strong>${lapLabel(player.laps, totalLaps)}</strong></div>
         <div class="dash-stat"><span>📋 Multas</span><strong>R$ ${finesTotal.toLocaleString('pt-BR')}</strong></div>
+        <div class="dash-stat"><span>💰 Saldo</span><strong>${brl(player.money)}</strong></div>
       </div>
       ${player.diceType < player.turboDiceType ? `<p class="small">A potencia daria d${player.turboDiceType}, mas o pneu gasto limita o dado.</p>` : ''}
       ${banners.join('')}

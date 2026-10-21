@@ -52,6 +52,10 @@ function playerRef(gameId, playerId) {
   return gameRef(gameId).collection('players').doc(playerId);
 }
 
+function transactionsCol(gameId) {
+  return gameRef(gameId).collection('transactions');
+}
+
 function finesCol(gameId) {
   return gameRef(gameId).collection('fines');
 }
@@ -100,6 +104,20 @@ async function checkHostKey(gameId, hostKey) {
   }
 }
 
+// Acoes do proprio piloto que mexem em algo dele (hoje: transferir dinheiro). Aceita a chave
+// do piloto OU a do mestre. Piloto sem chave guardada (entrou antes disso existir) fica liberado.
+async function checkPlayerOrHostKey(gameId, playerId, playerKey, hostKey) {
+  const snap = await gameSecretRef(gameId).get();
+  if (!snap.exists) return;
+  const secrets = snap.data();
+  if (hostKey && hostKey === secrets.hostKey) return;
+  const expected = (secrets.playerKeys || {})[playerId];
+  if (!expected) return;
+  if (playerKey !== expected) {
+    throw new GameError('PLAYER_ONLY', 'So o proprio piloto (ou o mestre) pode mexer nesse dinheiro');
+  }
+}
+
 async function getGame(gameId) {
   const snap = await gameRef(gameId).get();
   if (!snap.exists) throw new GameError('GAME_NOT_FOUND', 'Jogo nao encontrado');
@@ -126,10 +144,15 @@ async function addPlayer(gameId, name, color, userId) {
     tireRollsUsed: 0,
     eliminated: false,
     laps: 0,
+    money: 0,
     createdAt: new Date().toISOString(),
   });
+  // Chave do piloto: so quem entrou por este navegador (ou o mestre) mexe no dinheiro dele.
+  // Fica em gameSecrets (sem regra de leitura) e volta so nesta resposta.
+  const playerKey = nanoid(24);
+  await gameSecretRef(gameId).set({ playerKeys: { [id]: playerKey } }, { merge: true });
 
-  return getPlayer(gameId, id);
+  return { ...(await getPlayer(gameId, id)), playerKey };
 }
 
 async function getPlayer(gameId, playerId) {
@@ -499,6 +522,73 @@ async function onRaceFinished(gameId) {
   }
 }
 
+// --- Dinheiro ---
+// Cada piloto tem um saldo (`money`, comeca em 0). Piloto transfere pra outro piloto ou pro banco;
+// dinheiro so SAI do banco pelo mestre (bankPay). Toda movimentacao vira um registro em
+// games/{id}/transactions pro extrato. 'bank' e o id reservado do banco.
+const BANK = 'bank';
+
+function parseAmount(amount) {
+  const value = Number(amount);
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new GameError('INVALID_AMOUNT', 'Valor tem que ser um numero inteiro maior que zero');
+  }
+  return value;
+}
+
+async function transferMoney(gameId, fromPlayerId, toId, amount, reason) {
+  const value = parseAmount(amount);
+  if (!toId) throw new GameError('INVALID_TARGET', 'Escolha pra quem transferir');
+  if (toId === fromPlayerId) throw new GameError('INVALID_TARGET', 'Nao da pra transferir pra voce mesmo');
+
+  const fromRef = playerRef(gameId, fromPlayerId);
+  const toRef = toId === BANK ? null : playerRef(gameId, toId);
+  await db.runTransaction(async (t) => {
+    const [fromSnap, toSnap] = await Promise.all([t.get(fromRef), toRef ? t.get(toRef) : null]);
+    if (!fromSnap.exists) throw new GameError('PLAYER_NOT_FOUND', 'Jogador nao encontrado');
+    if (toRef && !toSnap.exists) throw new GameError('PLAYER_NOT_FOUND', 'Destinatario nao encontrado');
+
+    const from = fromSnap.data();
+    const balance = from.money || 0;
+    if (balance < value) throw new GameError('INSUFFICIENT_FUNDS', `Saldo insuficiente (tem R$ ${balance})`);
+
+    t.update(fromRef, { money: balance - value });
+    if (toRef) t.update(toRef, { money: (toSnap.data().money || 0) + value });
+    t.set(transactionsCol(gameId).doc(nanoid(8)), {
+      from: fromPlayerId,
+      fromName: from.name,
+      to: toId,
+      toName: toRef ? toSnap.data().name : 'Banco',
+      amount: value,
+      reason: reason || '',
+      createdAt: new Date().toISOString(),
+    });
+  });
+  return getPlayer(gameId, fromPlayerId);
+}
+
+// Banco paga o piloto - so o mestre (rota com requireHost).
+async function bankPay(gameId, toPlayerId, amount, reason) {
+  const value = parseAmount(amount);
+  const ref = playerRef(gameId, toPlayerId);
+  await db.runTransaction(async (t) => {
+    const snap = await t.get(ref);
+    if (!snap.exists) throw new GameError('PLAYER_NOT_FOUND', 'Jogador nao encontrado');
+    const player = snap.data();
+    t.update(ref, { money: (player.money || 0) + value });
+    t.set(transactionsCol(gameId).doc(nanoid(8)), {
+      from: BANK,
+      fromName: 'Banco',
+      to: toPlayerId,
+      toName: player.name,
+      amount: value,
+      reason: reason || '',
+      createdAt: new Date().toISOString(),
+    });
+  });
+  return getPlayer(gameId, toPlayerId);
+}
+
 async function applyFine(gameId, playerId, amount, reason) {
   const player = await getPlayer(gameId, playerId);
   const id = nanoid(8);
@@ -738,6 +828,7 @@ function serializePlayer(player) {
       penaltyDice: override,
     },
     laps: player.laps,
+    money: player.money || 0,
     lastRoll: player.lastRoll || null,
     lastCard: player.lastCard || null,
     watching: player.watching || null,
@@ -770,6 +861,9 @@ async function serializeGame(gameId) {
 module.exports = {
   GameError,
   createGame,
+  checkPlayerOrHostKey,
+  transferMoney,
+  bankPay,
   checkHostKey,
   getGame,
   addPlayer,

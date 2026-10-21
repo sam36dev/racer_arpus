@@ -3,8 +3,11 @@ import {
   doc,
   onSnapshot,
   collection,
+  query,
+  orderBy,
+  limit,
 } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
-import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider } from './dashboard.js';
+import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedles, createPanelSlider } from './dashboard.js';
 
 (function () {
   const params = new URLSearchParams(window.location.search);
@@ -16,10 +19,13 @@ import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider }
     return;
   }
 
+  // Chave do piloto (devolvida ao entrar na corrida) - o servidor exige pra mexer no dinheiro dele
+  const playerKey = localStorage.getItem(`racer-player-key-${playerId}`) || '';
+
   const api = (action, body) =>
     fetch(`/api/games/${gameId}/players/${playerId}/${action}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Player-Key': playerKey },
       body: JSON.stringify(body || {}),
     }).then(async (res) => {
       const data = await res.json();
@@ -62,6 +68,13 @@ import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider }
     myDash: document.getElementById('my-dash'),
 
     finesList: document.getElementById('fines-list'),
+
+    moneyTo: document.getElementById('money-to'),
+    moneyAmount: document.getElementById('money-amount'),
+    moneyReason: document.getElementById('money-reason'),
+    btnTransferMoney: document.getElementById('btn-transfer-money'),
+    moneyError: document.getElementById('money-error'),
+    txList: document.getElementById('tx-list'),
   };
 
   function popAnimate(el) {
@@ -75,6 +88,7 @@ import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider }
   let latestPlayerRaw = null;
   let latestFines = [];
   let latestPlayersRaw = [];
+  let latestTransactions = [];
   const seenRollAt = {}; // playerId -> timestamp da ultima rolagem ja animada
   const panels = createPanelSlider(el.slider, el.panelTabs);
 
@@ -94,6 +108,13 @@ import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider }
     captureNeedles(el.myDash);
     el.myDash.innerHTML = dashboardHTML(player, { finesTotal: finesTotalOf(playerId), totalLaps: latestGame.totalLaps, isMe: true });
     animateNeedles(el.myDash);
+
+    // Destinos de transferencia: banco + adversarios. Mantem a escolha atual entre renders.
+    const previousTo = el.moneyTo.value;
+    el.moneyTo.innerHTML = '<option value="">Escolha...</option><option value="bank">🏦 Banco</option>' +
+      latestPlayersRaw.filter((p) => p.id !== playerId).map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+    if ([...el.moneyTo.options].some((o) => o.value === previousTo)) el.moneyTo.value = previousTo;
+    el.txList.innerHTML = transactionsHTML(latestTransactions, playerId);
 
     const playerFines = latestFines.filter((f) => f.playerId === playerId);
     el.finesList.innerHTML = playerFines
@@ -179,6 +200,32 @@ import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider }
   onSnapshot(collection(db, 'games', gameId, 'players'), (snap) => {
     latestPlayersRaw = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     render();
+  });
+
+  onSnapshot(query(collection(db, 'games', gameId, 'transactions'), orderBy('createdAt', 'desc'), limit(50)), (snap) => {
+    latestTransactions = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    render();
+  });
+
+  busyClick(el.btnTransferMoney, async () => {
+    el.moneyError.style.display = 'none';
+    const to = el.moneyTo.value;
+    const amount = Number(el.moneyAmount.value);
+    if (!to || !amount) {
+      el.moneyError.style.display = 'block';
+      el.moneyError.textContent = 'Escolha pra quem e o valor.';
+      return;
+    }
+    const toName = el.moneyTo.selectedOptions[0].textContent;
+    if (!confirm(`Transferir ${brl(amount)} para ${toName}?`)) return;
+    try {
+      await api('transfer-money', { to, amount, reason: el.moneyReason.value.trim() });
+      el.moneyAmount.value = '';
+      el.moneyReason.value = '';
+    } catch (err) {
+      el.moneyError.style.display = 'block';
+      el.moneyError.textContent = err.message;
+    }
   });
 
   busyClick(el.btnRoll, async () => {

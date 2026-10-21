@@ -10,7 +10,7 @@ Três telas:
 
 - [index.html](public/index.html) — criar corrida ou entrar com o código.
 - [master.html](public/master.html) — painel do mestre: vê todos os pilotos e age por qualquer um (multa, reparar/penalizar pneu, subir turbo, +1 volta). Quem cria a corrida também joga. Usa o mesmo carrossel e o mesmo painel de mostradores da tela do piloto (o carro do mestre primeiro), com os controles do mestre ao lado.
-- [player.html](public/player.html) — painel do piloto: só rola o dado (abastecer, pneu e voltas são só do mestre, pedido do usuário — o piloto não tem esses botões). Os mostradores (relógio de gasolina E→F, desenho de pneu com anel de 10 barrinhas, turbo, voltas, multas) ficam lado a lado num carrossel com swipe: o primeiro slide é o seu, os outros são os painéis só-leitura de cada adversário. As abas em cima mostram o último número que cada um tirou e pulam pro slide. O painel e o carrossel ficam em [dashboard.js](public/js/dashboard.js), compartilhado com o mestre — mexeu no visual dos mostradores, vale pras duas telas.
+- [player.html](public/player.html) — painel do piloto: rola o dado e transfere dinheiro (abastecer, pneu e voltas são só do mestre, pedido do usuário — o piloto não tem esses botões). Os mostradores (relógio de gasolina E→F, desenho de pneu com anel de 10 barrinhas, turbo, voltas, multas) ficam lado a lado num carrossel com swipe: o primeiro slide é o seu, os outros são os painéis só-leitura de cada adversário. As abas em cima mostram o último número que cada um tirou e pulam pro slide. O painel e o carrossel ficam em [dashboard.js](public/js/dashboard.js), compartilhado com o mestre — mexeu no visual dos mostradores, vale pras duas telas.
 
 ## Stack e arquitetura
 
@@ -19,6 +19,7 @@ Três telas:
 - Frontend sem framework e **sem bundler**: HTML + JS puro, ES modules importando o SDK do Firebase via URL do gstatic.
 - Tempo real: o front assina `onSnapshot` nos docs de `games/{id}`, `players` e `fines`. As ações vão por `fetch` POST; a atualização da tela vem do snapshot, não da resposta.
 - Deploy na Vercel: [api/index.js](api/index.js) reexporta o app Express inteiro e [vercel.json](vercel.json) reescreve `/api/*` pra ele.
+- [firestore.rules](firestore.rules) **não** sobe com a Vercel — coleção nova lida pelo front precisa publicar as regras no Firebase (console, ou `admin.securityRules().releaseFirestoreRulesetFromSource()` com a conta de serviço do `.env`).
 
 ### Modelo no Firestore
 
@@ -26,7 +27,7 @@ Três telas:
 games/{gameId}          name, status (lobby|finished), totalLaps, raceType (padrao|porsche), winnerPlayerId
   players/{playerId}    name, color, userId, diceType, turboPosition,
                         fuelCurrent, tireBrand, tireLevel, tireRollsUsed,
-                        eliminated, laps, finesInRace, reachedD2, refuelsInRace, lastRoll { value, diceType, at },
+                        eliminated, laps, money, finesInRace, reachedD2, refuelsInRace, lastRoll { value, diceType, at },
                         lastCard { cardId, name, icon, description, at },
                         + campos de efeitos continuos das cartas da sorte, so presentes
                         quando ativos: tireWearMultiplier, diceLock, tanqueFuradoActive,
@@ -34,11 +35,12 @@ games/{gameId}          name, status (lobby|finished), totalLaps, raceType (padr
                         targetDiceType, seenValues[], triggered } (ver ACTIVE_EFFECTS)
   fines/{fineId}        playerId, amount, reason
   luckCards/{logId}     playerId, cardId, name, icon, description, appliedAt
+  transactions/{txId}   from, fromName, to, toName, amount, reason, createdAt   (from/to = playerId ou 'bank')
 users/{username}        displayName, passwordHash, wins, racesPlayed,
                         porscheWins, porscheRacesPlayed, lapsCompleted, finesReceived
   achievements/{id}     unlockedAt, grantedBy ('auto' ou username do admin)
 trophyHolders/{achievementId}  username, since   (dono atual de troféu transferível)
-gameSecrets/{gameId}    hostKey   (chave do mestre — sem regra de leitura, só o backend vê)
+gameSecrets/{gameId}    hostKey, playerKeys { playerId: key }   (sem regra de leitura, só o backend vê)
 ```
 
 `gameId` é um código de 6 dígitos só numérico (`newGameCode()`, fácil de ditar na mesa; corridas antigas mantêm o nanoid) e `playerId` é nanoid(8); o id do usuário **é** o username normalizado (minúsculo).
@@ -56,6 +58,7 @@ Os números de balanceamento ficam todos em [src/constants.js](src/constants.js)
 - **Eliminar piloto** (mestre, botão "🚫 Eliminar piloto"): pra quem desiste/sai da mesa — `eliminatePlayer()` exige confirmação + senha (`ELIMINATE_PIN` em [src/constants.js](src/constants.js), checada só no backend), marca `eliminated` e dispara a mesma checagem de último sobrevivente.
 - Reparar pneu (+1 nível) e trocar de marca (reseta pro 10) são livres no app (só o mestre faz) — o custo é físico, na mesa.
 - **Só o mestre age; o piloto só rola o dado** (pedido do usuário). `createGame` gera uma `hostKey` em `gameSecrets/{id}`, devolvida só na criação; o [index.html](public/index.html) guarda em `localStorage` (`racer-host-key-{id}`) e o master.js manda no header `X-Host-Key`. O `requireHost` do [server.js](server.js) trava abastecer, pneu, potência, volta, multas, cartas, eliminar e transferir efeito. `clear-effect` só é livre pra `field: 'watching'` (o piloto fecha o popup "troque de lugar"). Corrida sem `gameSecrets` (criada antes disso) continua liberada. O mestre que abrir o painel em outro navegador fica sem a chave.
+- **Dinheiro**: cada piloto tem um saldo `money` na corrida (começa em 0). O piloto transfere pra outro piloto ou pro banco (`transferMoney`, sem saldo negativo); dinheiro só **sai** do banco pelo mestre (`bankPay`, botão "🏦 Banco paga"). O mestre também pode transferir em nome de qualquer piloto. A transferência exige a chave do piloto (`X-Player-Key`, gerada no `addPlayer`, guardada em `localStorage` como `racer-player-key-{playerId}`) ou a do mestre — `checkPlayerOrHostKey()`; piloto sem chave (entrou antes disso) fica liberado. Toda movimentação vira um registro em `transactions` (extrato na tela do piloto, "💸 Movimentações" no mestre). É exceção à regra "o piloto só rola o dado", pedido do usuário.
 - **Multas**: só o mestre aplica (`applyFine`). Pagamento é físico, então o mestre também quita — `removeFine` tira uma multa específica (corrigir erro) e `clearFines` zera todas as de um jogador de uma vez (depois que ele paga na mesa).
 
 Regras marcadas como ASSUNÇÃO nos comentários (ex: o consumo proporcional ao dado) foram deduzidas, não confirmadas pelo cartão oficial. Se o usuário trouxer o número real, ajuste a constante e apague a nota.

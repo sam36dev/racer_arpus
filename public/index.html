@@ -104,6 +104,7 @@ btnCreate.addEventListener('click', async () => {
   });
   const masterPlayer = await playerRes.json();
   localStorage.setItem(`racer-my-player-${game.id}`, masterPlayer.id);
+  localStorage.setItem(`racer-player-key-${masterPlayer.id}`, masterPlayer.playerKey);
   localStorage.setItem(`racer-host-key-${game.id}`, game.hostKey);
 
   window.location.href = `/master.html?game=${game.id}`;
@@ -132,6 +133,7 @@ btnJoin.addEventListener('click', async () => {
     body: JSON.stringify({ name }),
   });
   const player = await res.json();
+  localStorage.setItem(`racer-player-key-${player.id}`, player.playerKey);
   window.location.href = `/player.html?game=${gameId}&player=${player.id}`;
 });
 </script>

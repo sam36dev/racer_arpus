@@ -7,7 +7,7 @@ import {
   orderBy,
   limit,
 } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
-import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider } from './dashboard.js';
+import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedles, createPanelSlider } from './dashboard.js';
 
 (function () {
   const params = new URLSearchParams(window.location.search);
@@ -74,6 +74,7 @@ import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider }
   let latestPlayersRaw = [];
   let latestFines = [];
   let latestLuckLog = [];
+  let latestTransactions = [];
   let luckCatalog = []; // catalogo de cartas da sorte, carregado uma vez da API
   const seenRollAt = {}; // playerId -> timestamp da ultima rolagem ja renderizada
 
@@ -248,6 +249,22 @@ import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider }
               <button class="danger btn-downgrade-turbo">Diminuir potencia (-1)</button>
             </div>
 
+            <div class="bar-label mt-24"><span>💰 Dinheiro</span><span class="bar-value">${brl(player.money)}</span></div>
+            <div class="btn-row">
+              <input type="number" class="money-amount" placeholder="Valor (R$)" min="1" step="1" style="flex:1" />
+              <input type="text" class="money-reason" placeholder="Motivo (opcional)" style="flex:2" />
+            </div>
+            <button class="secondary full-width btn-bank-pay">🏦 Banco paga</button>
+            <div class="btn-row">
+              <select class="money-to">
+                <option value="">Transferir pra...</option>
+                <option value="bank">🏦 Banco</option>
+                ${latestPlayersRaw.filter((p) => p.id !== player.id).map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}
+              </select>
+              <button class="secondary btn-transfer-money">Transferir</button>
+            </div>
+            <div class="money-error-mini danger-banner" style="display:none;"></div>
+
             <div class="bar-label mt-24"><span>📋 Multas</span><span class="bar-value">R$ ${finesTotal.toLocaleString('pt-BR')}</span></div>
             ${fines.length ? `
               <div class="fines-list">
@@ -327,6 +344,35 @@ import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider }
       const p = api(player.id, 'fine', { amount, reason }).catch(() => {});
       div.querySelector('.fine-reason').value = '';
       return p;
+    });
+
+    // Dinheiro: o mestre libera dinheiro do banco e tambem pode transferir por qualquer piloto
+    const moneyErrorEl = div.querySelector('.money-error-mini');
+    const moneyAction = async (action, body) => {
+      moneyErrorEl.style.display = 'none';
+      try {
+        await api(player.id, action, body);
+      } catch (err) {
+        moneyErrorEl.style.display = 'block';
+        moneyErrorEl.textContent = err.message;
+      }
+    };
+    const moneyInputs = () => ({
+      amount: Number(div.querySelector('.money-amount').value),
+      reason: div.querySelector('.money-reason').value.trim(),
+    });
+    busyClick(div.querySelector('.btn-bank-pay'), () => {
+      const { amount, reason } = moneyInputs();
+      if (!amount) return Promise.resolve();
+      if (!confirm(`Banco paga ${brl(amount)} para ${player.name}?`)) return Promise.resolve();
+      return moneyAction('bank-pay', { amount, reason });
+    });
+    busyClick(div.querySelector('.btn-transfer-money'), () => {
+      const { amount, reason } = moneyInputs();
+      const select = div.querySelector('.money-to');
+      if (!amount || !select.value) return Promise.resolve();
+      if (!confirm(`${player.name} transfere ${brl(amount)} para ${select.selectedOptions[0].textContent}?`)) return Promise.resolve();
+      return moneyAction('transfer-money', { to: select.value, amount, reason });
     });
 
     const btnClearFines = div.querySelector('.btn-clear-fines');
@@ -463,6 +509,11 @@ import { esc, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider }
   onSnapshot(query(collection(db, 'games', gameId, 'luckCards'), orderBy('appliedAt', 'desc'), limit(20)), (snap) => {
     latestLuckLog = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     renderLuckLog();
+  });
+
+  onSnapshot(query(collection(db, 'games', gameId, 'transactions'), orderBy('createdAt', 'desc'), limit(30)), (snap) => {
+    latestTransactions = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    document.getElementById('tx-list').innerHTML = transactionsHTML(latestTransactions);
   });
 
   document.getElementById('btn-add-player').addEventListener('click', async () => {

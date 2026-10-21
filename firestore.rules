@@ -20,6 +20,11 @@ service cloud.firestore {
         allow read: if true;  // historico de cartas da sorte ativadas, publico como as multas
         allow write: if false;
       }
+
+      match /transactions/{txId} {
+        allow read: if true;  // extrato de dinheiro (transferencias e pagamentos do banco)
+        allow write: if false;
+      }
     }
 
     match /users/{userId} {

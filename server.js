@@ -22,7 +22,7 @@ function wrap(fn) {
       res.json(result);
     } catch (err) {
       const status = err.code === 'GAME_NOT_FOUND' || err.code === 'PLAYER_NOT_FOUND' ? 404
-        : err.code === 'HOST_ONLY' ? 403 : 400;
+        : err.code === 'HOST_ONLY' || err.code === 'PLAYER_ONLY' ? 403 : 400;
       res.status(status).json({ error: err.message, code: err.code });
     }
   };
@@ -54,7 +54,8 @@ app.post(
     const userId = req.user ? req.user.username : null;
     const name = req.body.name || (req.user ? req.user.username : 'Piloto');
     const p = await game.addPlayer(req.params.gameId, name, req.body.color, userId);
-    return game.serializePlayer(p);
+    // playerKey so volta aqui - quem entrou guarda no localStorage e manda nas acoes do proprio piloto
+    return { ...game.serializePlayer(p), playerKey: p.playerKey };
   })
 );
 
@@ -156,6 +157,26 @@ app.post(
   wrap(async (req) => {
     const fines = await game.removeFine(req.params.gameId, req.params.fineId);
     return { fines };
+  })
+);
+
+// --- Dinheiro: piloto transfere (pra outro piloto ou pro banco); so o mestre faz o banco pagar ---
+
+app.post(
+  '/api/games/:gameId/players/:playerId/transfer-money',
+  wrap(async (req) => {
+    await game.checkPlayerOrHostKey(req.params.gameId, req.params.playerId, req.get('X-Player-Key'), req.get('X-Host-Key'));
+    const p = await game.transferMoney(req.params.gameId, req.params.playerId, req.body.to, req.body.amount, req.body.reason);
+    return game.serializePlayer(p);
+  })
+);
+
+app.post(
+  '/api/games/:gameId/players/:playerId/bank-pay',
+  requireHost,
+  wrap(async (req) => {
+    const p = await game.bankPay(req.params.gameId, req.params.playerId, req.body.amount, req.body.reason);
+    return game.serializePlayer(p);
   })
 );
 

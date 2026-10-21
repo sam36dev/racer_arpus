@@ -423,7 +423,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .dash-stats {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
   margin-top: 14px;
 }
@@ -439,6 +439,11 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   color: var(--muted);
 }
 .dash-stat strong { font-size: 1.2rem; color: var(--text); }
+
+/* Extrato de dinheiro */
+.tx-list { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; max-height: 220px; overflow-y: auto; }
+.tx-in { color: var(--green); }
+.tx-out { color: var(--muted); }
 
 /* Mestre: painel do piloto a esquerda, controles a direita (empilha no celular) */
 .master-layout {

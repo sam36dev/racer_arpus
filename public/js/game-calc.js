@@ -125,6 +125,7 @@ window.GameCalc = (function () {
         penaltyDice: override,
       },
       laps: player.laps,
+      money: player.money || 0,
       lastRoll: player.lastRoll || null,
       lastCard: player.lastCard || null,
       watching: player.watching || null,
