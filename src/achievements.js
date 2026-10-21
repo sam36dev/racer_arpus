@@ -23,6 +23,7 @@ const CATALOG = [
   { id: 'dono-de-interlagos', name: 'Dono de Interlagos', description: 'Comprou o Autodromo de Interlagos (concedido pelo admin)', icon: '🏟️', type: 'manual' },
   { id: 'magnata-4-propriedades', name: 'Magnata', description: 'Comprou 4 propriedades na mesma partida (concedido pelo admin)', icon: '🏘️', type: 'manual' },
   { id: 'imperio-5-propriedades', name: 'Imperio Imobiliario', description: 'Comprou 5 propriedades na mesma partida (concedido pelo admin)', icon: '🏙️', type: 'manual' },
+  { id: 'todas-as-propriedades', name: 'Dono do Tabuleiro', description: 'Comprou todas as propriedades (concedido pelo admin)', icon: '🗺️', type: 'manual' },
   { id: 'lenda-da-mesa', name: 'Lenda da Mesa', description: 'Ter mais vitorias que todo mundo (minimo 3). Passa de mao em mao: quem ultrapassar o dono atual leva', icon: '🐐', type: 'transferable' },
 ];
 
