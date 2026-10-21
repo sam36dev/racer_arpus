@@ -291,11 +291,11 @@ async function refuel(gameId, playerId, amount) {
     return { userId: player.userId, refuelsInRace: refuels };
   });
   if (userId && refuelsInRace >= REFUELS_TROPHY_MIN) {
-    await achievements.checkAutoAchievements(userId, 'refuels_60_in_race');
+    await achievements.checkAutoAchievements(userId, 'refuels_300_in_race');
   }
   return getPlayer(gameId, playerId);
 }
-const REFUELS_TROPHY_MIN = 60;
+const REFUELS_TROPHY_MIN = 300;
 
 // Reparo/manutencao: sobe o nivel do pneu (ate o maximo), sem mexer na marca
 // nem na contagem de rolagens ate o proximo desgaste. `amount` > 1 so vem de carta da sorte.

@@ -15,7 +15,7 @@ const CATALOG = [
   { id: 'vitoria-por-voltas', name: 'Bandeirada', description: 'Vencer uma corrida completando todas as voltas', icon: '🏁', type: 'auto', code: 'win_by_laps' },
   { id: 'vitoria-no-d2', name: 'Na Raca', description: 'Chegar ao d2 (pneu gasto) na corrida e mesmo assim vencer por voltas', icon: '🛞', type: 'auto', code: 'win_by_laps_after_d2' },
   { id: 'ultimo-sobrevivente', name: 'Ultimo de Pe', description: 'Vencer uma corrida com todos os oponentes eliminados', icon: '💀', type: 'auto', code: 'win_last_standing' },
-  { id: 'frentista', name: 'Frentista', description: 'Abastecer 60 vezes na mesma corrida', icon: '⛽', type: 'auto', code: 'refuels_60_in_race' },
+  { id: 'frentista', name: 'Frentista', description: 'Abastecer 300 vezes na mesma corrida', icon: '⛽', type: 'auto', code: 'refuels_300_in_race' },
   { id: 'turbo-maximo', name: 'Potencia Maxima', description: 'Chegar ao nivel maximo da potencia (d12) em uma corrida', icon: '🌀', type: 'auto', code: 'reached_d12' },
   { id: 'dono-de-interlagos', name: 'Dono de Interlagos', description: 'Comprou o Autodromo de Interlagos (concedido pelo admin)', icon: '🏟️', type: 'manual' },
   { id: 'magnata-4-propriedades', name: 'Magnata', description: 'Comprou 4 propriedades na mesma partida (concedido pelo admin)', icon: '🏘️', type: 'manual' },
