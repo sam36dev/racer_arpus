@@ -441,8 +441,17 @@ async function awardWin(userId, eliminated, porsche) {
   const user = await users.getUser(userId);
   if ((user.wins || 0) + (user.porscheWins || 0) === 1) await achievements.checkAutoAchievements(userId, 'first_win');
   if (!eliminated) await achievements.checkAutoAchievements(userId, 'finish_no_elimination');
-  if (!porsche) await achievements.updateLendaDaMesa(userId);
+  if (!porsche) {
+    await achievements.updateLendaDaMesa(userId);
+    return;
+  }
+  for (const n of PORSCHE_WIN_TROPHIES) {
+    if (user.porscheWins >= n) await achievements.checkAutoAchievements(userId, `porsche_wins_${n}`);
+  }
 }
+
+// Trofeus de vitorias na Porsche Cup (codes porsche_wins_N em achievements.js)
+const PORSCHE_WIN_TROPHIES = [1, 3, 5];
 
 // Se todos os outros foram eliminados, o ultimo piloto vivo vence a corrida automaticamente.
 // So vale com 2+ jogadores (corrida solo nao termina assim) e se a corrida ainda nao acabou.
