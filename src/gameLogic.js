@@ -112,7 +112,7 @@ function isPorsche(game) {
 }
 
 async function addPlayer(gameId, name, color, userId) {
-  const game = await getGame(gameId);
+  await getGame(gameId);
   const id = nanoid(8);
   await playerRef(gameId, id).set({
     name,
@@ -128,15 +128,6 @@ async function addPlayer(gameId, name, color, userId) {
     laps: 0,
     createdAt: new Date().toISOString(),
   });
-
-  if (userId) {
-    await users.incrementStats(userId, isPorsche(game) ? { porscheRacesPlayed: 1 } : { racesPlayed: 1 });
-    const user = await users.getUser(userId);
-    // Veterano conta corridas das duas competicoes juntas
-    if ((user.racesPlayed || 0) + (user.porscheRacesPlayed || 0) >= 10) {
-      await achievements.checkAutoAchievements(userId, 'races_played_10');
-    }
-  }
 
   return getPlayer(gameId, id);
 }
@@ -477,12 +468,22 @@ async function checkLastStanding(gameId) {
   if (winner) await onRaceFinished(gameId);
 }
 
-// Trofeus que dependem do estado final da corrida inteira, checados uma vez quando ela acaba.
+// Roda uma vez quando a corrida acaba. A corrida so entra em "corridas jogadas" aqui (e pra
+// todo mundo, eliminado ou nao) - contar na entrada inflava a conta com corrida de teste
+// abandonada no meio.
 const FINES_TROPHY_MIN = 10;
 async function onRaceFinished(gameId) {
-  const players = await listPlayers(gameId);
+  const [game, players] = await Promise.all([getGame(gameId), listPlayers(gameId)]);
   for (const p of players) {
-    if (!p.userId || p.eliminated) continue;
+    if (!p.userId) continue;
+    await users.incrementStats(p.userId, isPorsche(game) ? { porscheRacesPlayed: 1 } : { racesPlayed: 1 });
+    const user = await users.getUser(p.userId);
+    // Veterano conta corridas das duas competicoes juntas
+    if ((user.racesPlayed || 0) + (user.porscheRacesPlayed || 0) >= 10) {
+      await achievements.checkAutoAchievements(p.userId, 'races_played_10');
+    }
+
+    if (p.eliminated) continue;
     if ((p.finesInRace || 0) >= FINES_TROPHY_MIN) {
       await achievements.checkAutoAchievements(p.userId, 'fines_10_no_elimination');
     }
