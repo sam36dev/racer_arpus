@@ -98,6 +98,12 @@ const LAPS_OPTIONS = [5, 10];
 const RACE_TYPES = ['padrao', 'porsche'];
 const DEFAULT_RACE_TYPE = 'padrao';
 
+// Dinheiro: cada piloto comeca com STARTING_MONEY. Abastecer (+1 por clique) e reparar pneu
+// (+1 nivel) pelo mestre custam isso cada; cartas da sorte que dao combustivel/reparo sao de graca.
+const STARTING_MONEY = 50000;
+const REFUEL_COST = 1000;
+const TIRE_REPAIR_COST = 1000;
+
 // Senha que o mestre digita pra eliminar um piloto na mao (evita clique acidental).
 // Checada so no backend - nao espelhar em game-calc.js.
 const ELIMINATE_PIN = '4755';
@@ -114,6 +120,9 @@ module.exports = {
   RACE_TYPES,
   DEFAULT_RACE_TYPE,
   ELIMINATE_PIN,
+  STARTING_MONEY,
+  REFUEL_COST,
+  TIRE_REPAIR_COST,
   fuelConsumptionPerRoll,
   diceForTurboPosition,
   turboProgress,

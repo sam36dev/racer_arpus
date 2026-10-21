@@ -13,6 +13,9 @@ const {
   RACE_TYPES,
   DEFAULT_RACE_TYPE,
   ELIMINATE_PIN,
+  STARTING_MONEY,
+  REFUEL_COST,
+  TIRE_REPAIR_COST,
   fuelConsumptionPerRoll,
   diceForTurboPosition,
   turboProgress,
@@ -144,7 +147,7 @@ async function addPlayer(gameId, name, color, userId) {
     tireRollsUsed: 0,
     eliminated: false,
     laps: 0,
-    money: 0,
+    money: STARTING_MONEY,
     createdAt: new Date().toISOString(),
   });
   // Chave do piloto: so quem entrou por este navegador (ou o mestre) mexe no dinheiro dele.
@@ -309,6 +312,7 @@ async function refuel(gameId, playerId, amount) {
     if (isPumpClick && newFuel > player.fuelCurrent) {
       refuels += 1;
       updates.refuelsInRace = refuels;
+      chargeToBank(t, gameId, snap.id, player, updates, REFUEL_COST, 'Abastecer');
     }
     t.update(ref, updates);
     return { userId: player.userId, refuelsInRace: refuels };
@@ -322,13 +326,22 @@ const REFUELS_TROPHY_MIN = 300;
 
 // Reparo/manutencao: sobe o nivel do pneu (ate o maximo), sem mexer na marca
 // nem na contagem de rolagens ate o proximo desgaste. `amount` > 1 so vem de carta da sorte.
-async function repairTire(gameId, playerId, amount = 1) {
+// `amount` so vem preenchido quando chamado por carta da sorte (de graca); o reparo normal do
+// mestre (rota HTTP, sem amount) custa TIRE_REPAIR_COST.
+async function repairTire(gameId, playerId, amount) {
+  const isShopRepair = amount === undefined;
+  const delta = isShopRepair ? 1 : amount;
   const ref = playerRef(gameId, playerId);
   await db.runTransaction(async (t) => {
     const snap = await t.get(ref);
     if (!snap.exists) throw new GameError('PLAYER_NOT_FOUND', 'Jogador nao encontrado');
-    const newLevel = Math.min(TIRE_LEVEL_MAX, snap.data().tireLevel + amount);
-    t.update(ref, { tireLevel: newLevel });
+    const player = snap.data();
+    const newLevel = Math.min(TIRE_LEVEL_MAX, player.tireLevel + delta);
+    const updates = { tireLevel: newLevel };
+    if (isShopRepair && newLevel > player.tireLevel) {
+      chargeToBank(t, gameId, snap.id, player, updates, TIRE_REPAIR_COST, 'Reparo de pneu');
+    }
+    t.update(ref, updates);
   });
   await syncWatchersDiceType(gameId, playerId);
   return getPlayer(gameId, playerId);
@@ -534,6 +547,30 @@ function parseAmount(amount) {
     throw new GameError('INVALID_AMOUNT', 'Valor tem que ser um numero inteiro maior que zero');
   }
   return value;
+}
+
+// Cobranca do banco dentro de uma transacao ja aberta (abastecer, reparar pneu): confere saldo,
+// poe o novo saldo em `updates` (o chamador faz o t.update) e grava no extrato.
+// Piloto sem o campo money (entrou antes do dinheiro existir) nao e cobrado.
+function chargeToBank(t, gameId, playerId, player, updates, cost, reason) {
+  if (player.money === undefined) return;
+  if (player.money < cost) {
+    throw new GameError(
+      'INSUFFICIENT_FUNDS',
+      `Saldo insuficiente pra ${reason.toLowerCase()} (custa R$ ${cost}, tem R$ ${player.money}). ` +
+        'Venda uma propriedade ao banco - sem nada pra vender, o piloto esta eliminado.'
+    );
+  }
+  updates.money = player.money - cost;
+  t.set(transactionsCol(gameId).doc(nanoid(8)), {
+    from: playerId,
+    fromName: player.name,
+    to: BANK,
+    toName: 'Banco',
+    amount: cost,
+    reason,
+    createdAt: new Date().toISOString(),
+  });
 }
 
 async function transferMoney(gameId, fromPlayerId, toId, amount, reason) {

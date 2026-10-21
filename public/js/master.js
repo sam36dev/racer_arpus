@@ -225,13 +225,13 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
 
           <div>
             <div class="btn-row">
-              <button class="secondary btn-refuel">⛽ Abastecer +1</button>
+              <button class="secondary btn-refuel">⛽ Abastecer +1 (R$ 1 mil)</button>
               <button class="secondary btn-lap">🏁 Completou a volta</button>
             </div>
 
             <div class="bar-label mt-24"><span>🛞 Pneu</span></div>
             <div class="btn-row">
-              <button class="secondary btn-repair-tire">Reparar (+1 nivel)</button>
+              <button class="secondary btn-repair-tire">Reparar +1 nivel (R$ 1 mil)</button>
               <button class="danger btn-damage-tire">Penalizar (-1 nivel)</button>
             </div>
             <div class="btn-row">
@@ -330,12 +330,13 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
       }
     });
 
-    busyClick(div.querySelector('.btn-refuel'), () => api(player.id, 'refuel').catch(() => {}));
+    // Abastecer e reparar custam dinheiro - sem saldo o servidor recusa e o mestre precisa ver o motivo
+    busyClick(div.querySelector('.btn-refuel'), () => api(player.id, 'refuel').catch((err) => alert(err.message)));
     busyClick(div.querySelector('.btn-change-tire'), () => {
       const brand = div.querySelector('.tire-select').value;
       return api(player.id, 'change-tire-brand', { brand }).catch(() => {});
     });
-    busyClick(div.querySelector('.btn-repair-tire'), () => api(player.id, 'repair-tire').catch(() => {}));
+    busyClick(div.querySelector('.btn-repair-tire'), () => api(player.id, 'repair-tire').catch((err) => alert(err.message)));
     busyClick(div.querySelector('.btn-damage-tire'), () => api(player.id, 'damage-tire').catch(() => {}));
     busyClick(div.querySelector('.btn-apply-fine'), () => {
       const amount = div.querySelector('.fine-amount').value;
