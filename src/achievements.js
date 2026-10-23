@@ -15,7 +15,7 @@ const CATALOG = [
   { id: 'vitoria-por-voltas', name: 'Bandeirada', description: 'Vencer uma corrida completando todas as voltas', icon: '🏁', type: 'auto', code: 'win_by_laps' },
   { id: 'vitoria-no-d2', name: 'Na Raca', description: 'Chegar ao d2 (pneu gasto) na corrida e mesmo assim vencer por voltas', icon: '🛞', type: 'auto', code: 'win_by_laps_after_d2' },
   { id: 'ultimo-sobrevivente', name: 'Ultimo de Pe', description: 'Vencer uma corrida com todos os oponentes eliminados', icon: '💀', type: 'auto', code: 'win_last_standing' },
-  { id: 'frentista', name: 'Frentista', description: 'Abastecer 300 vezes na mesma corrida', icon: '⛽', type: 'auto', code: 'refuels_300_in_race' },
+  { id: 'frentista', name: 'Frentista', description: 'Rolar o dado do posto 100 vezes na mesma corrida', icon: '⛽', type: 'auto', code: 'refuels_100_in_race' },
   { id: 'turbo-maximo', name: 'Potencia Maxima', description: 'Chegar ao nivel maximo da potencia (d12) em uma corrida', icon: '🌀', type: 'auto', code: 'reached_d12' },
   { id: 'porsche-cup-1', name: 'Campeao Porsche Cup', description: 'Vencer a Porsche Cup', icon: '🏎️', type: 'auto', code: 'porsche_wins_1' },
   { id: 'porsche-cup-3', name: 'Tricampeao Porsche Cup', description: 'Vencer a Porsche Cup 3 vezes', icon: '🥇', type: 'auto', code: 'porsche_wins_3' },

@@ -192,7 +192,7 @@ import { esc, brl, dashboardHTML, captureNeedles, animateNeedles, createPanelSli
 
   // Reiniciar cartas: desliga todos os efeitos de carta de todos os pilotos de uma vez
   busyClick(document.getElementById('btn-reset-luck-cards'), async () => {
-    if (!confirm('Tirar TODAS as cartas da sorte ativas de TODOS os pilotos?')) return;
+    if (!confirm('Tirar TODAS as cartas da sorte ativas de TODOS os pilotos e apagar o historico de cartas?')) return;
     try {
       await apiPath('/reset-luck-cards');
     } catch (err) {
@@ -295,7 +295,7 @@ import { esc, brl, dashboardHTML, captureNeedles, animateNeedles, createPanelSli
                 `).join('')}
               </div>
             ` : ''}
-            <input type="number" class="fine-amount" placeholder="Valor (R$)" value="1000" />
+            <input type="number" class="fine-amount" placeholder="Valor (mil)" value="1" min="0" step="any" inputmode="decimal" />
             <button class="danger full-width btn-apply-fine">Aplicar multa</button>
             ${fines.length ? '<button class="secondary full-width btn-clear-fines">Quitar todas as multas</button>' : ''}
 
@@ -367,8 +367,9 @@ import { esc, brl, dashboardHTML, captureNeedles, animateNeedles, createPanelSli
     busyClick(div.querySelector('.btn-repair-tire'), () => api(player.id, 'repair-tire').catch((err) => alert(err.message)));
     busyClick(div.querySelector('.btn-damage-tire'), () => api(player.id, 'damage-tire').catch(() => {}));
     busyClick(div.querySelector('.btn-apply-fine'), () => {
-      const amount = div.querySelector('.fine-amount').value;
-      if (!amount || Number(amount) <= 0) return Promise.resolve();
+      // Valor digitado em milhares: 1 = R$ 1 mil
+      const amount = Math.round(Number(div.querySelector('.fine-amount').value) * 1000);
+      if (!amount || amount <= 0) return Promise.resolve();
       return api(player.id, 'fine', { amount }).catch(() => {});
     });
 

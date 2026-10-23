@@ -343,9 +343,9 @@ async function rollFuelStation(gameId, playerId) {
 
     const value = 1 + Math.floor(Math.random() * FUEL_STATION_DICE);
     const newFuel = Math.min(FUEL_MAX, player.fuelCurrent + value);
-    // Contador por corrida pro trofeu Frentista: cada unidade que entrou no tanque e uma abastecida.
     const added = Math.min(value, Math.ceil(FUEL_MAX - player.fuelCurrent));
-    const refuels = (player.refuelsInRace || 0) + added;
+    // Contador por corrida pro trofeu Frentista: cada rolagem do dado do posto e uma abastecida.
+    const refuels = (player.refuelsInRace || 0) + 1;
     const updates = {
       fuelCurrent: newFuel,
       refuelsInRace: refuels,
@@ -359,11 +359,11 @@ async function rollFuelStation(gameId, playerId) {
     return { value, userId: player.userId, refuelsInRace: refuels };
   });
   if (result.userId && result.refuelsInRace >= REFUELS_TROPHY_MIN) {
-    await achievements.checkAutoAchievements(result.userId, 'refuels_300_in_race');
+    await achievements.checkAutoAchievements(result.userId, 'refuels_100_in_race');
   }
   return { value: result.value, player: await getPlayer(gameId, playerId) };
 }
-const REFUELS_TROPHY_MIN = 300;
+const REFUELS_TROPHY_MIN = 100;
 
 // Reparo/manutencao: sobe o nivel do pneu (ate o maximo), sem mexer na marca
 // nem na contagem de rolagens ate o proximo desgaste. `amount` > 1 so vem de carta da sorte.
@@ -850,16 +850,17 @@ async function clearEffect(gameId, playerId, field) {
 // caso do tabuleiro em que os dois caem na mesma casa e a "zica" passa adiante.
 // Tira o efeito de quem tinha, liga no alvo com o mesmo valor, e anuncia a carta pro alvo.
 // Reiniciar cartas (botao do mestre): desliga todo efeito continuo de carta de TODOS os pilotos
-// (Gasolina de Graca inclusive). O historico (luckCards) fica - e historico.
+// (Gasolina de Graca inclusive) e apaga o historico de cartas da corrida (luckCards).
 // Sem syncWatchersDiceType: o 'watching' de todo mundo tambem e desligado, nao sobra observador.
 async function resetLuckCards(gameId) {
   await getGame(gameId);
-  const players = await listPlayers(gameId);
+  const [players, log] = await Promise.all([listPlayers(gameId), luckCardsCol(gameId).get()]);
   const defaults = Object.fromEntries(
     luckCards.activeEffectFields().map((field) => [field, luckCards.getActiveEffect(field).default])
   );
   const batch = db.batch();
-  for (const p of players) batch.update(playerRef(gameId, p.id), defaults);
+  for (const p of players) batch.update(playerRef(gameId, p.id), { ...defaults, lastCard: null });
+  log.docs.forEach((doc) => batch.delete(doc.ref));
   await batch.commit();
   return { players: players.length };
 }
