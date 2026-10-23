@@ -225,9 +225,17 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
 
           <div>
             <div class="btn-row">
-              <button class="secondary btn-refuel">⛽ Abastecer +1 (R$ 1 mil)</button>
               <button class="secondary btn-lap">🏁 Completou a volta</button>
             </div>
+
+            <div class="bar-label mt-24"><span>⛽ Posto</span><span class="bar-value">${player.fuelStationOpen ? 'liberado' : 'bloqueado'}</span></div>
+            <div class="btn-row">
+              ${player.fuelStationOpen
+                ? `<button class="secondary btn-roll-fuel">🎲 Dado do posto (R$ 1 mil)</button>
+                   <button class="danger btn-fuel-station" data-open="">🔒 Bloquear posto</button>`
+                : '<button class="secondary btn-fuel-station" data-open="1">⛽ Liberar posto</button>'}
+            </div>
+            ${player.lastFuelRoll ? `<p class="small">Ultimo dado do posto: <strong>${player.lastFuelRoll.value}</strong></p>` : ''}
 
             <div class="bar-label mt-24"><span>🛞 Pneu</span></div>
             <div class="btn-row">
@@ -251,7 +259,7 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
 
             <div class="bar-label mt-24"><span>💰 Dinheiro</span><span class="bar-value">${brl(player.money)}</span></div>
             <div class="btn-row">
-              <input type="number" class="money-amount" placeholder="Valor (R$)" min="1" step="1" style="flex:1" />
+              <input type="number" class="money-amount" placeholder="Valor (mil)" min="0" step="any" inputmode="decimal" style="flex:1" />
               <input type="text" class="money-reason" placeholder="Motivo (opcional)" style="flex:2" />
             </div>
             <button class="secondary full-width btn-bank-pay">🏦 Banco paga</button>
@@ -330,8 +338,11 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
       }
     });
 
-    // Abastecer e reparar custam dinheiro - sem saldo o servidor recusa e o mestre precisa ver o motivo
-    busyClick(div.querySelector('.btn-refuel'), () => api(player.id, 'refuel').catch((err) => alert(err.message)));
+    // Dado do posto e reparo custam dinheiro - sem saldo o servidor recusa e o mestre precisa ver o motivo
+    const stationBtn = div.querySelector('.btn-fuel-station');
+    busyClick(stationBtn, () => api(player.id, 'fuel-station', { open: !!stationBtn.dataset.open }).catch((err) => alert(err.message)));
+    const rollFuelBtn = div.querySelector('.btn-roll-fuel');
+    if (rollFuelBtn) busyClick(rollFuelBtn, () => api(player.id, 'roll-fuel').catch((err) => alert(err.message)));
     busyClick(div.querySelector('.btn-change-tire'), () => {
       const brand = div.querySelector('.tire-select').value;
       return api(player.id, 'change-tire-brand', { brand }).catch(() => {});
@@ -359,7 +370,8 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
       }
     };
     const moneyInputs = () => ({
-      amount: Number(div.querySelector('.money-amount').value),
+      // Valor digitado em milhares: 6 = R$ 6 mil
+      amount: Math.round(Number(div.querySelector('.money-amount').value) * 1000),
       reason: div.querySelector('.money-reason').value.trim(),
     });
     busyClick(div.querySelector('.btn-bank-pay'), () => {

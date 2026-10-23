@@ -15,6 +15,7 @@ const {
   ELIMINATE_PIN,
   STARTING_MONEY,
   REFUEL_COST,
+  FUEL_STATION_DICE,
   TIRE_REPAIR_COST,
   fuelConsumptionPerRoll,
   diceForTurboPosition,
@@ -107,7 +108,7 @@ async function checkHostKey(gameId, hostKey) {
   }
 }
 
-// Acoes do proprio piloto que mexem em algo dele (hoje: transferir dinheiro). Aceita a chave
+// Acoes do proprio piloto que mexem em algo dele (transferir dinheiro, dado do posto). Aceita a chave
 // do piloto OU a do mestre. Piloto sem chave guardada (entrou antes disso existir) fica liberado.
 async function checkPlayerOrHostKey(gameId, playerId, playerKey, hostKey) {
   const snap = await gameSecretRef(gameId).get();
@@ -117,7 +118,7 @@ async function checkPlayerOrHostKey(gameId, playerId, playerKey, hostKey) {
   const expected = (secrets.playerKeys || {})[playerId];
   if (!expected) return;
   if (playerKey !== expected) {
-    throw new GameError('PLAYER_ONLY', 'So o proprio piloto (ou o mestre) pode mexer nesse dinheiro');
+    throw new GameError('PLAYER_ONLY', 'So o proprio piloto (ou o mestre) pode fazer isso');
   }
 }
 
@@ -294,33 +295,66 @@ async function syncWatchersDiceType(gameId, targetPlayerId) {
   );
 }
 
-// Abastecer enche aos poucos: +1 unidade de combustivel por vez (nao enche o tanque de uma vez).
-// `amount` so vem preenchido quando chamado por uma carta da sorte (pode ser negativo).
+// Combustivel direto (sem custo): so carta da sorte chama isso hoje (`amount` pode ser negativo).
+// Abastecer de verdade e pelo dado do posto - ver rollFuelStation().
 async function refuel(gameId, playerId, amount) {
-  const isPumpClick = amount === undefined; // clique normal no "Abastecer +1", nao carta
-  const delta = isPumpClick ? 1 : amount;
   const ref = playerRef(gameId, playerId);
-  const { userId, refuelsInRace } = await db.runTransaction(async (t) => {
+  await db.runTransaction(async (t) => {
     const snap = await t.get(ref);
     if (!snap.exists) throw new GameError('PLAYER_NOT_FOUND', 'Jogador nao encontrado');
     const player = snap.data();
-    const newFuel = Math.min(FUEL_MAX, Math.max(0, player.fuelCurrent + delta));
-    const updates = { fuelCurrent: newFuel };
-    // Contador por corrida pro trofeu Frentista - so clique que realmente colocou combustivel
-    // (tanque cheio nao conta, carta da sorte nao conta).
-    let refuels = player.refuelsInRace || 0;
-    if (isPumpClick && newFuel > player.fuelCurrent) {
-      refuels += 1;
-      updates.refuelsInRace = refuels;
-      chargeToBank(t, gameId, snap.id, player, updates, REFUEL_COST, 'Abastecer');
-    }
-    t.update(ref, updates);
-    return { userId: player.userId, refuelsInRace: refuels };
+    t.update(ref, { fuelCurrent: Math.min(FUEL_MAX, Math.max(0, player.fuelCurrent + amount)) });
   });
-  if (userId && refuelsInRace >= REFUELS_TROPHY_MIN) {
-    await achievements.checkAutoAchievements(userId, 'refuels_300_in_race');
-  }
   return getPlayer(gameId, playerId);
+}
+
+// Posto: o mestre libera o dado do posto pra um piloto e ele fica liberado ate o mestre
+// bloquear ou o tanque encher (rollFuelStation fecha sozinho).
+async function setFuelStation(gameId, playerId, open) {
+  const ref = playerRef(gameId, playerId);
+  await db.runTransaction(async (t) => {
+    const snap = await t.get(ref);
+    if (!snap.exists) throw new GameError('PLAYER_NOT_FOUND', 'Jogador nao encontrado');
+    const player = snap.data();
+    if (open && player.eliminated) throw new GameError('ELIMINATED', 'Piloto eliminado nao abastece');
+    if (open && player.fuelCurrent >= FUEL_MAX) throw new GameError('TANK_FULL', 'O tanque ja esta cheio');
+    t.update(ref, { fuelStationOpen: !!open });
+  });
+  return getPlayer(gameId, playerId);
+}
+
+// Dado do posto: rola um d6 e abastece o numero que cair, pagando sempre REFUEL_COST por
+// rolagem (tirou 1 ou 6, paga o mesmo). Nao e rolagem de corrida: nao gasta combustivel nem
+// pneu, nao mexe em lastRoll e nao conta pra Transmissao Sequencial.
+async function rollFuelStation(gameId, playerId) {
+  const ref = playerRef(gameId, playerId);
+  const result = await db.runTransaction(async (t) => {
+    const snap = await t.get(ref);
+    if (!snap.exists) throw new GameError('PLAYER_NOT_FOUND', 'Jogador nao encontrado');
+    const player = snap.data();
+    if (!player.fuelStationOpen) throw new GameError('STATION_CLOSED', 'O mestre ainda nao liberou o posto pra voce');
+    if (player.eliminated) throw new GameError('ELIMINATED', 'Piloto eliminado nao abastece');
+    if (player.fuelCurrent >= FUEL_MAX) throw new GameError('TANK_FULL', 'O tanque ja esta cheio');
+
+    const value = 1 + Math.floor(Math.random() * FUEL_STATION_DICE);
+    const newFuel = Math.min(FUEL_MAX, player.fuelCurrent + value);
+    // Contador por corrida pro trofeu Frentista: cada unidade que entrou no tanque e uma abastecida.
+    const added = Math.min(value, Math.ceil(FUEL_MAX - player.fuelCurrent));
+    const refuels = (player.refuelsInRace || 0) + added;
+    const updates = {
+      fuelCurrent: newFuel,
+      refuelsInRace: refuels,
+      lastFuelRoll: { value, at: Date.now() },
+    };
+    if (newFuel >= FUEL_MAX) updates.fuelStationOpen = false;
+    chargeToBank(t, gameId, snap.id, player, updates, REFUEL_COST, 'Abastecer (dado do posto)');
+    t.update(ref, updates);
+    return { value, userId: player.userId, refuelsInRace: refuels };
+  });
+  if (result.userId && result.refuelsInRace >= REFUELS_TROPHY_MIN) {
+    await achievements.checkAutoAchievements(result.userId, 'refuels_300_in_race');
+  }
+  return { value: result.value, player: await getPlayer(gameId, playerId) };
 }
 const REFUELS_TROPHY_MIN = 300;
 
@@ -549,7 +583,7 @@ function parseAmount(amount) {
   return value;
 }
 
-// Cobranca do banco dentro de uma transacao ja aberta (abastecer, reparar pneu): confere saldo,
+// Cobranca do banco dentro de uma transacao ja aberta (dado do posto, reparar pneu): confere saldo,
 // poe o novo saldo em `updates` (o chamador faz o t.update) e grava no extrato.
 // Piloto sem o campo money (entrou antes do dinheiro existir) nao e cobrado.
 function chargeToBank(t, gameId, playerId, player, updates, cost, reason) {
@@ -867,6 +901,8 @@ function serializePlayer(player) {
     laps: player.laps,
     money: player.money || 0,
     lastRoll: player.lastRoll || null,
+    fuelStationOpen: !!player.fuelStationOpen,
+    lastFuelRoll: player.lastFuelRoll || null,
     lastCard: player.lastCard || null,
     watching: player.watching || null,
     activeEffects,
@@ -908,6 +944,8 @@ module.exports = {
   listPlayers,
   rollDice,
   refuel,
+  setFuelStation,
+  rollFuelStation,
   repairTire,
   damageTire,
   eliminatePlayer,

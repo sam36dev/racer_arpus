@@ -67,12 +67,22 @@ app.post(
   })
 );
 
+// Posto: o mestre libera/bloqueia; o piloto (ou o mestre por ele) rola o dado do posto.
 app.post(
-  '/api/games/:gameId/players/:playerId/refuel',
+  '/api/games/:gameId/players/:playerId/fuel-station',
   requireHost,
   wrap(async (req) => {
-    const p = await game.refuel(req.params.gameId, req.params.playerId);
+    const p = await game.setFuelStation(req.params.gameId, req.params.playerId, !!req.body.open);
     return game.serializePlayer(p);
+  })
+);
+
+app.post(
+  '/api/games/:gameId/players/:playerId/roll-fuel',
+  wrap(async (req) => {
+    await game.checkPlayerOrHostKey(req.params.gameId, req.params.playerId, req.get('X-Player-Key'), req.get('X-Host-Key'));
+    const { value } = await game.rollFuelStation(req.params.gameId, req.params.playerId);
+    return { value };
   })
 );
 

@@ -127,6 +127,8 @@ window.GameCalc = (function () {
       laps: player.laps,
       money: player.money || 0,
       lastRoll: player.lastRoll || null,
+      fuelStationOpen: !!player.fuelStationOpen,
+      lastFuelRoll: player.lastFuelRoll || null,
       lastCard: player.lastCard || null,
       watching: player.watching || null,
       activeEffects: Object.keys(ACTIVE_EFFECTS)

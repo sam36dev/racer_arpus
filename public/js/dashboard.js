@@ -209,7 +209,7 @@ export function dashboardHTML(player, { finesTotal, totalLaps, isMe = false, sho
     banners.push(`<div class="danger-banner">ELIMINADO${isMe ? ' - voce nao pode mais rolar nesta corrida' : ''}</div>`);
   } else {
     if (player.fuel.empty) {
-      banners.push(`<div class="danger-banner">SEM COMBUSTIVEL${isMe ? ' - va ao posto ou peca reabastecimento ao mestre!' : ''}</div>`);
+      banners.push(`<div class="danger-banner">SEM COMBUSTIVEL${isMe ? ' - peca pro mestre liberar o posto!' : ''}</div>`);
     } else if (player.fuel.warning) {
       banners.push(`<div class="warning-banner">${isMe ? 'Voce tem' : 'Tem'} mais ${player.fuel.rollsLeft} rodada(s) de combustivel</div>`);
     }

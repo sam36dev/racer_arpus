@@ -57,6 +57,11 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
     btnRoll: document.getElementById('btn-roll'),
     rollError: document.getElementById('roll-error'),
 
+    fuelStationCard: document.getElementById('fuel-station-card'),
+    fuelRollResult: document.getElementById('fuel-roll-result'),
+    btnRollFuel: document.getElementById('btn-roll-fuel'),
+    fuelError: document.getElementById('fuel-error'),
+
     watchingCard: document.getElementById('watching-card'),
     watchingStatus: document.getElementById('watching-status'),
     swapPopup: document.getElementById('swap-popup'),
@@ -141,6 +146,13 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
       el.swapPopup.style.display = 'none';
     }
 
+    // Posto: card so enquanto o mestre deixar liberado
+    el.fuelStationCard.style.display = player.fuelStationOpen ? 'block' : 'none';
+    if (player.lastFuelRoll) {
+      el.fuelRollResult.style.display = 'block';
+      el.fuelRollResult.textContent = `Ultimo dado do posto: ${player.lastFuelRoll.value} (abasteceu ${player.lastFuelRoll.value}).`;
+    }
+
     // Bloqueios de rolagem
     const blocked = player.eliminated || player.fuel.empty;
     el.btnRoll.disabled = blocked || latestGame.status === 'finished';
@@ -210,7 +222,8 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
   busyClick(el.btnTransferMoney, async () => {
     el.moneyError.style.display = 'none';
     const to = el.moneyTo.value;
-    const amount = Number(el.moneyAmount.value);
+    // Valor digitado em milhares: 6 = R$ 6 mil
+    const amount = Math.round(Number(el.moneyAmount.value) * 1000);
     if (!to || !amount) {
       el.moneyError.style.display = 'block';
       el.moneyError.textContent = 'Escolha pra quem e o valor.';
@@ -225,6 +238,16 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
     } catch (err) {
       el.moneyError.style.display = 'block';
       el.moneyError.textContent = err.message;
+    }
+  });
+
+  busyClick(el.btnRollFuel, async () => {
+    el.fuelError.style.display = 'none';
+    try {
+      await api('roll-fuel');
+    } catch (err) {
+      el.fuelError.style.display = 'block';
+      el.fuelError.textContent = err.message;
     }
   });
 

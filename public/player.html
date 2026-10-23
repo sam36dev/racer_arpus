@@ -18,6 +18,15 @@
   <button id="btn-roll" class="dice-btn">🎲 Rolar dado</button>
   <div id="roll-error" class="danger-banner" style="display:none;"></div>
 
+  <!-- POSTO: so aparece enquanto o mestre deixar o posto liberado (fecha sozinho com o tanque cheio) -->
+  <div id="fuel-station-card" class="card" style="display:none;">
+    <div class="stat-row"><span class="stat-icon">⛽</span><h3>Posto liberado</h3></div>
+    <p class="small">Role o dado do posto: abastece o numero que cair. Cada rolagem custa R$ 1 mil.</p>
+    <p class="small" id="fuel-roll-result" style="display:none;"></p>
+    <button class="full-width" id="btn-roll-fuel">🎲 Rolar dado do posto</button>
+    <div id="fuel-error" class="danger-banner" style="display:none;"></div>
+  </div>
+
   <!-- TRANSMISSAO SEQUENCIAL: so aparece enquanto este jogador estiver observando um oponente -->
   <div id="watching-card" class="card" style="display:none;">
     <div class="stat-row"><span class="stat-icon">📡</span><h3>Observando</h3></div>
@@ -41,8 +50,8 @@
          o mesmo usado nos paineis dos adversarios -->
     <div id="my-dash"></div>
 
-    <!-- Abastecer, reparar/trocar pneu e fechar volta sao so do mestre (painel do mestre) -->
-    <p class="small center">Abastecer, pneu e voltas sao feitos pelo mestre.</p>
+    <!-- Liberar o posto, reparar/trocar pneu e fechar volta sao so do mestre (painel do mestre) -->
+    <p class="small center">Posto (liberar), pneu e voltas sao feitos pelo mestre.</p>
 
     <div class="card">
       <div class="stat-row"><span class="stat-icon">💰</span><h3>Dinheiro</h3></div>
@@ -50,7 +59,7 @@
       <label for="money-to">Pra quem</label>
       <select id="money-to"></select>
       <div class="btn-row">
-        <input type="number" id="money-amount" placeholder="Valor (R$)" min="1" step="1" style="flex:1" />
+        <input type="number" id="money-amount" placeholder="Valor (mil)" min="0" step="any" inputmode="decimal" style="flex:1" />
         <input type="text" id="money-reason" placeholder="Motivo (opcional)" style="flex:2" />
       </div>
       <button class="full-width" id="btn-transfer-money">Transferir</button>
