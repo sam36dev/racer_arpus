@@ -16,6 +16,8 @@ const {
   STARTING_MONEY,
   REFUEL_COST,
   FUEL_STATION_DICE,
+  LAP_PRIZE,
+  FIRST_LAP_PRIZES,
   TIRE_REPAIR_COST,
   fuelConsumptionPerRoll,
   diceForTurboPosition,
@@ -471,7 +473,38 @@ async function completeLap(gameId, playerId, delta = 1) {
 
     const player = playerSnap.data();
     const newLaps = Math.max(0, player.laps + delta);
-    t.update(pRef, { laps: newLaps });
+    const updates = { laps: newLaps };
+
+    // Premio do banco por volta. `lapsPaid` = ate que volta ja foi pago, pra volta desfeita e
+    // refeita (carta -1/+1) nao pagar duas vezes. Sem o campo (corrida antiga) conta como ja pago
+    // ate a volta atual - nada retroativo. Piloto sem money (corrida antiga) nao recebe.
+    const lapsPaid = player.lapsPaid != null ? player.lapsPaid : player.laps;
+    let firstLapPlace = null;
+    if (player.money !== undefined && newLaps > lapsPaid && lapsPaid < 1) {
+      // Colocacao na volta 1: quantos OUTROS pilotos ja completaram a primeira volta.
+      const done = await t.get(gRef.collection('players').where('laps', '>=', 1));
+      firstLapPlace = done.docs.filter((d) => d.id !== playerId).length + 1;
+    }
+    if (player.money !== undefined && newLaps > lapsPaid) {
+      let prize = 0;
+      for (let lap = lapsPaid + 1; lap <= newLaps; lap++) {
+        const isFirstLapPodium = lap === 1 && firstLapPlace <= FIRST_LAP_PRIZES.length;
+        const lapPrize = isFirstLapPodium ? FIRST_LAP_PRIZES[firstLapPlace - 1] : LAP_PRIZE;
+        prize += lapPrize;
+        t.set(transactionsCol(gameId).doc(nanoid(8)), {
+          from: BANK,
+          fromName: 'Banco',
+          to: playerId,
+          toName: player.name,
+          amount: lapPrize,
+          reason: isFirstLapPodium ? `Volta 1 (${firstLapPlace}o a completar)` : `Volta ${lap}`,
+          createdAt: new Date().toISOString(),
+        });
+      }
+      updates.money = player.money + prize;
+      updates.lapsPaid = newLaps;
+    }
+    t.update(pRef, updates);
 
     const game = gameSnap.data();
     let won = false;

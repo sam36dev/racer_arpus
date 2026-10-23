@@ -28,7 +28,7 @@ games/{gameId}          name, status (lobby|finished), totalLaps, raceType (padr
   players/{playerId}    name, color, userId, diceType, turboPosition,
                         fuelCurrent, tireBrand, tireLevel, tireRollsUsed,
                         eliminated, laps, money, finesInRace, reachedD2, refuelsInRace, lastRoll { value, diceType, at },
-                        fuelStationOpen, lastFuelRoll { value, added, at },
+                        fuelStationOpen, lastFuelRoll { value, added, at }, lapsPaid,
                         lastCard { cardId, name, icon, description, at },
                         + campos de efeitos continuos das cartas da sorte, so presentes
                         quando ativos: tireWearMultiplier, diceLock, tanqueFuradoActive,
@@ -55,6 +55,7 @@ Os números de balanceamento ficam todos em [src/constants.js](src/constants.js)
 - **Turbo** (na tela aparece como **Potência**; no código continua `turbo*`): cada upgrade avança 1 posição; posição ≥5 vira d8, ≥8 vira d12.
 - **Pneu gasto sempre vence o turbo** — é isso que `effectiveDice()` faz. Um d12 com pneu nível 3 rola d2.
 - **Voltas**: o mestre escolhe **5 ou 10** ao criar a corrida (`LAPS_OPTIONS`, padrão 10, salvo em `totalLaps`). `laps` no banco é voltas **completas** (começa em 0), mas a tela mostra a volta em que o piloto **está** — começa na "Volta 1" (`lapLabel()` em [dashboard.js](public/js/dashboard.js)); completou a última, ganha. A primeira a chegar marca `status: 'finished'` e vira `winnerPlayerId`. Completar volta **não** desconta pneu — o desgaste já vem das rolagens normais (ver abaixo); descontar de novo por volta seria contar o mesmo desgaste duas vezes.
+- **Prêmio por volta** (`completeLap`): o banco paga `LAP_PRIZE` (5 mil) por volta completada, exceto a **volta 1 dos 4 primeiros** a completá-la — 40/30/20/10 mil (`FIRST_LAP_PRIZES`); do 5º em diante a volta 1 paga 5 mil. Vale pra qualquer número de jogadores. A colocação é quantos outros pilotos já têm `laps >= 1`. `lapsPaid` guarda até que volta já foi paga, pra volta desfeita e refeita não pagar de novo; piloto sem `lapsPaid` (corrida antiga) conta como pago até a volta atual (nada retroativo). Cada prêmio vira um registro em `transactions`.
 - **Último sobrevivente**: se todos os outros pilotos forem eliminados (corrida com 2+ jogadores), o que sobrou vence na hora — `checkLastStanding()` marca `finished`/`winnerPlayerId` e credita a vitória igual a completar as voltas (`awardWin()`).
 - **Eliminar piloto** (mestre, botão "🚫 Eliminar piloto"): pra quem desiste/sai da mesa — `eliminatePlayer()` exige confirmação + senha (`ELIMINATE_PIN` em [src/constants.js](src/constants.js), checada só no backend), marca `eliminated` e dispara a mesma checagem de último sobrevivente.
 - Reparar pneu (+1 nível) e trocar de marca (reseta pro 10) são livres no app (só o mestre faz) — o custo é físico, na mesa.

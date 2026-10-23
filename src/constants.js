@@ -104,6 +104,12 @@ const DEFAULT_RACE_TYPE = 'padrao';
 const STARTING_MONEY = 50000;
 const REFUEL_COST = 1000;
 const FUEL_STATION_DICE = 6;
+
+// Premio do banco por volta completada: LAP_PRIZE em toda volta, exceto a primeira volta dos 4
+// primeiros a completa-la (1o 40 mil, 2o 30, 3o 20, 4o 10). Do 5o em diante a volta 1 paga LAP_PRIZE.
+// Vale igual pra qualquer numero de jogadores (com 2 ou 3, so os primeiros premios sao usados).
+const LAP_PRIZE = 5000;
+const FIRST_LAP_PRIZES = [40000, 30000, 20000, 10000];
 const TIRE_REPAIR_COST = 1000;
 
 // Senha que o mestre digita pra eliminar um piloto na mao (evita clique acidental).
@@ -125,6 +131,8 @@ module.exports = {
   STARTING_MONEY,
   REFUEL_COST,
   FUEL_STATION_DICE,
+  LAP_PRIZE,
+  FIRST_LAP_PRIZES,
   TIRE_REPAIR_COST,
   fuelConsumptionPerRoll,
   diceForTurboPosition,
