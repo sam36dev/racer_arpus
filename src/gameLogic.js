@@ -629,8 +629,8 @@ function isFirstLap(player) {
 }
 
 // Cartao do Dobro (moneyMultiplier, ver ACTIVE_EFFECTS): multiplica todo valor de dinheiro
-// AUTOMATICO desse piloto - premio de volta, custo do posto e do reparo. O que o mestre digita
-// (multa, transferencia, banco paga) nao e multiplicado. Dois cartoes = x4.
+// AUTOMATICO desse piloto - premio de volta, custo do posto e do reparo - e tambem o total na hora
+// de quitar as multas. O que o mestre digita (transferencia, banco paga) nao e multiplicado. Dois cartoes = x4.
 function moneyMultiplier(player) {
   return player.moneyMultiplier || 1;
 }
@@ -757,7 +757,10 @@ async function clearFines(gameId, playerId) {
     }
     const total = finesSnap.docs.reduce((sum, doc) => sum + Number(doc.data().amount || 0), 0);
     const updates = {};
-    chargeToBank(t, gameId, snap.id, player, updates, total, `Multas (${finesSnap.docs.length})`);
+    // Cartao do Dobro tambem multiplica na hora de pagar (a multa fica registrada com o valor digitado).
+    const mult = moneyMultiplier(player);
+    const reason = `Multas (${finesSnap.docs.length})${mult > 1 ? ` x${mult}` : ''}`;
+    chargeToBank(t, gameId, snap.id, player, updates, total * mult, reason);
     if (Object.keys(updates).length) t.update(ref, updates);
     finesSnap.docs.forEach((doc) => t.delete(doc.ref));
   });

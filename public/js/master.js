@@ -297,7 +297,7 @@ import { esc, brl, dashboardHTML, captureNeedles, animateNeedles, createPanelSli
             ` : ''}
             <input type="number" class="fine-amount" placeholder="Valor (mil)" value="1" min="0" step="any" inputmode="decimal" />
             <button class="danger full-width btn-apply-fine">Aplicar multa</button>
-            ${fines.length ? `<button class="secondary full-width btn-clear-fines">💸 Quitar multas (${brl(finesTotal)}${player.laps < 1 ? ' - nao paga na 1a volta' : ''})</button>` : ''}
+            ${fines.length ? `<button class="secondary full-width btn-clear-fines">💸 Quitar multas (${brl(finesTotal * player.moneyMultiplier)}${player.moneyMultiplier > 1 ? ` - x${player.moneyMultiplier}` : ''}${player.laps < 1 ? ' - nao paga na 1a volta' : ''})</button>` : ''}
 
             ${player.activeEffects.length ? `
               <div class="bar-label mt-24"><span>⚡ Efeitos ativos</span></div>
@@ -403,7 +403,8 @@ import { esc, brl, dashboardHTML, captureNeedles, animateNeedles, createPanelSli
     const btnClearFines = div.querySelector('.btn-clear-fines');
     if (btnClearFines) {
       busyClick(btnClearFines, () => {
-        if (!confirm(`${player.name} paga ${brl(finesTotal)} de multas pro banco?`)) return Promise.resolve();
+        const toPay = finesTotal * player.moneyMultiplier;
+        if (!confirm(`${player.name} paga ${brl(toPay)} de multas pro banco?`)) return Promise.resolve();
         return api(player.id, 'clear-fines').catch((err) => alert(err.message));
       });
     }

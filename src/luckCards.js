@@ -65,8 +65,8 @@ const CATALOG = [
     id: 'cartao-do-dobro-1',
     name: 'Cartao do Dobro #1',
     description:
-      'Todo dinheiro automatico desse jogador vale o dobro: premio de volta, custo do posto e do reparo. ' +
-      'O que o mestre digita (multa, transferencia) nao muda. Com os 2 cartoes, vale 4 vezes.',
+      'Todo dinheiro automatico desse jogador vale o dobro: premio de volta, custo do posto e do reparo, ' +
+      'e as multas na hora de pagar. Transferencia digitada nao muda. Com os 2 cartoes, vale 4 vezes.',
     icon: '💰',
     effect: { type: 'moneyMultiplier', value: 2 },
   },
@@ -74,8 +74,8 @@ const CATALOG = [
     id: 'cartao-do-dobro-2',
     name: 'Cartao do Dobro #2',
     description:
-      'Todo dinheiro automatico desse jogador vale o dobro: premio de volta, custo do posto e do reparo. ' +
-      'O que o mestre digita (multa, transferencia) nao muda. Com os 2 cartoes, vale 4 vezes.',
+      'Todo dinheiro automatico desse jogador vale o dobro: premio de volta, custo do posto e do reparo, ' +
+      'e as multas na hora de pagar. Transferencia digitada nao muda. Com os 2 cartoes, vale 4 vezes.',
     icon: '💰',
     effect: { type: 'moneyMultiplier', value: 2 },
   },
