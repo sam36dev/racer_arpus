@@ -621,11 +621,18 @@ function parseAmount(amount) {
   return value;
 }
 
+// Regra da mesa: na primeira volta (ainda nao completou nenhuma) o piloto NAO perde dinheiro -
+// posto e reparo saem de graca e ele nao transfere (comprar propriedade e fisico; pagar pra sair
+// da prisao, quando existir, tambem tem que respeitar isso).
+function isFirstLap(player) {
+  return (player.laps || 0) < 1;
+}
+
 // Cobranca do banco dentro de uma transacao ja aberta (dado do posto, reparar pneu): confere saldo,
 // poe o novo saldo em `updates` (o chamador faz o t.update) e grava no extrato.
-// Piloto sem o campo money (entrou antes do dinheiro existir) nao e cobrado.
+// Piloto sem o campo money (entrou antes do dinheiro existir) ou na primeira volta nao e cobrado.
 function chargeToBank(t, gameId, playerId, player, updates, cost, reason) {
-  if (player.money === undefined) return;
+  if (player.money === undefined || isFirstLap(player)) return;
   if (player.money < cost) {
     throw new GameError(
       'INSUFFICIENT_FUNDS',
@@ -658,6 +665,9 @@ async function transferMoney(gameId, fromPlayerId, toId, amount, reason) {
     if (toRef && !toSnap.exists) throw new GameError('PLAYER_NOT_FOUND', 'Destinatario nao encontrado');
 
     const from = fromSnap.data();
+    if (isFirstLap(from)) {
+      throw new GameError('FIRST_LAP', 'Na primeira volta ninguem perde dinheiro - transferencia liberada depois de completar a volta 1');
+    }
     const balance = from.money || 0;
     if (balance < value) throw new GameError('INSUFFICIENT_FUNDS', `Saldo insuficiente (tem R$ ${balance})`);
 
