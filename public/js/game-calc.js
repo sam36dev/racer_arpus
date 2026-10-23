@@ -28,6 +28,7 @@ window.GameCalc = (function () {
       default: false,
       transferable: false,
     },
+    moneyMultiplier: { label: (value) => `Cartao do dobro: dinheiro x${value}`, default: 1, transferable: false },
     freeFuelActive: { label: () => 'Gasolina de graca (posto sem pagar)', default: false, transferable: false },
     watching: {
       label: (value) => `Observando ${value.targetName} (${(value.seenValues || []).length}/${value.targetDiceType})`,
@@ -130,6 +131,7 @@ window.GameCalc = (function () {
       lastRoll: player.lastRoll || null,
       fuelStationOpen: !!player.fuelStationOpen,
       freeFuel: !!player.freeFuelActive,
+      moneyMultiplier: player.moneyMultiplier || 1,
       lastFuelRoll: player.lastFuelRoll || null,
       lastCard: player.lastCard || null,
       watching: player.watching || null,

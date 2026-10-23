@@ -240,7 +240,7 @@ import { esc, brl, dashboardHTML, captureNeedles, animateNeedles, createPanelSli
 
             <div class="bar-label mt-24"><span>⛽ Posto</span><span class="bar-value">${player.freeFuel ? 'gratis (carta)' : player.fuelStationOpen ? 'liberado' : 'bloqueado'}</span></div>
             <div class="btn-row">
-              ${player.fuelStationOpen || player.freeFuel ? `<button class="secondary btn-roll-fuel" ${player.fuel.current >= player.fuel.max ? 'disabled' : ''}>🎲 Dado do posto (${player.freeFuel || player.laps < 1 ? 'gratis' : 'R$ 1 mil'})</button>` : ''}
+              ${player.fuelStationOpen || player.freeFuel ? `<button class="secondary btn-roll-fuel" ${player.fuel.current >= player.fuel.max ? 'disabled' : ''}>🎲 Dado do posto (${player.freeFuel || player.laps < 1 ? 'gratis' : `R$ ${player.moneyMultiplier} mil`})</button>` : ''}
               ${player.freeFuel ? ''
                 : player.fuelStationOpen ? '<button class="danger btn-fuel-station" data-open="">🔒 Bloquear posto</button>'
                 : '<button class="secondary btn-fuel-station" data-open="1">⛽ Liberar posto</button>'}
@@ -253,7 +253,7 @@ import { esc, brl, dashboardHTML, captureNeedles, animateNeedles, createPanelSli
 
             <div class="bar-label mt-24"><span>🛞 Pneu</span></div>
             <div class="btn-row">
-              <button class="secondary btn-repair-tire">Reparar +1 nivel (${player.laps < 1 ? 'gratis na 1a volta' : 'R$ 1 mil'})</button>
+              <button class="secondary btn-repair-tire">Reparar +1 nivel (${player.laps < 1 ? 'gratis na 1a volta' : `R$ ${player.moneyMultiplier} mil`})</button>
               <button class="danger btn-damage-tire">Penalizar (-1 nivel)</button>
             </div>
             <div class="btn-row">

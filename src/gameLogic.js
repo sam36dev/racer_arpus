@@ -353,7 +353,7 @@ async function rollFuelStation(gameId, playerId) {
     };
     if (newFuel >= FUEL_MAX) updates.fuelStationOpen = false;
     if (!free) {
-      chargeToBank(t, gameId, snap.id, player, updates, REFUEL_COST, 'Abastecer (dado do posto)');
+      chargeToBank(t, gameId, snap.id, player, updates, REFUEL_COST * moneyMultiplier(player), 'Abastecer (dado do posto)');
     }
     t.update(ref, updates);
     return { value, userId: player.userId, refuelsInRace: refuels };
@@ -380,7 +380,7 @@ async function repairTire(gameId, playerId, amount) {
     const newLevel = Math.min(TIRE_LEVEL_MAX, player.tireLevel + delta);
     const updates = { tireLevel: newLevel };
     if (isShopRepair && newLevel > player.tireLevel) {
-      chargeToBank(t, gameId, snap.id, player, updates, TIRE_REPAIR_COST, 'Reparo de pneu');
+      chargeToBank(t, gameId, snap.id, player, updates, TIRE_REPAIR_COST * moneyMultiplier(player), 'Reparo de pneu');
     }
     t.update(ref, updates);
   });
@@ -494,7 +494,7 @@ async function completeLap(gameId, playerId, delta = 1) {
       let prize = 0;
       for (let lap = lapsPaid + 1; lap <= newLaps; lap++) {
         const isFirstLapPodium = lap === 1 && firstLapPlace <= FIRST_LAP_PRIZES.length;
-        const lapPrize = isFirstLapPodium ? FIRST_LAP_PRIZES[firstLapPlace - 1] : LAP_PRIZE;
+        const lapPrize = (isFirstLapPodium ? FIRST_LAP_PRIZES[firstLapPlace - 1] : LAP_PRIZE) * moneyMultiplier(player);
         prize += lapPrize;
         t.set(transactionsCol(gameId).doc(nanoid(8)), {
           from: BANK,
@@ -626,6 +626,13 @@ function parseAmount(amount) {
 // da prisao, quando existir, tambem tem que respeitar isso).
 function isFirstLap(player) {
   return (player.laps || 0) < 1;
+}
+
+// Cartao do Dobro (moneyMultiplier, ver ACTIVE_EFFECTS): multiplica todo valor de dinheiro
+// AUTOMATICO desse piloto - premio de volta, custo do posto e do reparo. O que o mestre digita
+// (multa, transferencia, banco paga) nao e multiplicado. Dois cartoes = x4.
+function moneyMultiplier(player) {
+  return player.moneyMultiplier || 1;
 }
 
 // Cobranca do banco dentro de uma transacao ja aberta (dado do posto, reparar pneu): confere saldo,
@@ -798,6 +805,8 @@ async function recordCardActivation(gameId, playerId, card) {
 // Aplica o efeito automatico da carta (ver src/luckCards.js) e registra no
 // historico + no proprio jogador (lastCard), pra tela do piloto reagir em tempo real.
 // `targetPlayerId` so e usado por cartas do tipo 'watchOpponent' (ex: Transmissao Sequencial).
+const MONEY_MULTIPLIER_MAX = 4; // existem 2 Cartoes do Dobro no baralho
+
 async function activateCard(gameId, playerId, cardId, targetPlayerId) {
   const card = luckCards.findById(cardId);
   if (!card) throw new GameError('INVALID_CARD', 'Carta da sorte invalida');
@@ -836,6 +845,12 @@ async function activateCard(gameId, playerId, cardId, targetPlayerId) {
       await playerRef(gameId, playerId).update({
         watching: { targetPlayerId, targetName: targetPlayer.name, targetDiceType, seenValues: [], triggered: false },
       });
+      break;
+    }
+    case 'moneyMultiplier': {
+      // Cada Cartao do Dobro multiplica o que ja tem: 1 cartao x2, os 2 cartoes no mesmo piloto x4.
+      const current = (await getPlayer(gameId, playerId)).moneyMultiplier || 1;
+      await playerRef(gameId, playerId).update({ moneyMultiplier: Math.min(MONEY_MULTIPLIER_MAX, current * effect.value) });
       break;
     }
     case 'statusOn':
@@ -980,6 +995,7 @@ function serializePlayer(player) {
     lastRoll: player.lastRoll || null,
     fuelStationOpen: !!player.fuelStationOpen,
     freeFuel: !!player.freeFuelActive,
+    moneyMultiplier: player.moneyMultiplier || 1,
     lastFuelRoll: player.lastFuelRoll || null,
     lastCard: player.lastCard || null,
     watching: player.watching || null,

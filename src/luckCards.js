@@ -10,6 +10,8 @@
 //   'turbo'        -> soma effect.value a posicao do turbo (negativo reduz o dado)
 //   'laps'         -> soma effect.value as voltas completas (pode fazer o jogador vencer a corrida)
 //   'fine'         -> aplica uma multa de effect.value, com o nome da carta como motivo
+//   'moneyMultiplier' -> multiplica o efeito continuo moneyMultiplier por effect.value (Cartao do
+//                     Dobro: 1 cartao x2, 2 cartoes no mesmo piloto x4)
 //   'none'         -> so anuncia a carta pro jogador, sem mexer em nenhum stat
 //                     (usado quando o efeito e narrativo e o mestre resolve na mesa)
 //   'statusOn'     -> liga um efeito CONTINUO (effect.field / effect.value), que fica valendo
@@ -57,6 +59,25 @@ const CATALOG = [
       'quiser, ate o mestre tirar a carta.',
     icon: '🆓',
     effect: { type: 'statusOn', field: 'freeFuelActive', value: true },
+  },
+  // Sao 2 Cartoes do Dobro no baralho fisico, por isso duas entradas iguais (#1 e #2).
+  {
+    id: 'cartao-do-dobro-1',
+    name: 'Cartao do Dobro #1',
+    description:
+      'Todo dinheiro automatico desse jogador vale o dobro: premio de volta, custo do posto e do reparo. ' +
+      'O que o mestre digita (multa, transferencia) nao muda. Com os 2 cartoes, vale 4 vezes.',
+    icon: '💰',
+    effect: { type: 'moneyMultiplier', value: 2 },
+  },
+  {
+    id: 'cartao-do-dobro-2',
+    name: 'Cartao do Dobro #2',
+    description:
+      'Todo dinheiro automatico desse jogador vale o dobro: premio de volta, custo do posto e do reparo. ' +
+      'O que o mestre digita (multa, transferencia) nao muda. Com os 2 cartoes, vale 4 vezes.',
+    icon: '💰',
+    effect: { type: 'moneyMultiplier', value: 2 },
   },
   {
     id: 'tanque-furado',
@@ -113,6 +134,11 @@ const ACTIVE_EFFECTS = {
   d12TempActive: {
     label: () => 'D12 temporario (1 litro/rolagem, acaba ao tirar 12)',
     default: false,
+    transferable: false,
+  },
+  moneyMultiplier: {
+    label: (value) => `Cartao do dobro: dinheiro x${value}`,
+    default: 1,
     transferable: false,
   },
   freeFuelActive: {

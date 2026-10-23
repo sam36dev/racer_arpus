@@ -164,7 +164,7 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
       ? 'Role o dado do posto quantas vezes quiser, sem pagar, enquanto a carta estiver ativa.' + (tankFull ? ' Tanque cheio agora.' : '')
       : player.laps < 1
         ? 'Role o dado do posto: abastece o numero que cair. De graca na primeira volta.'
-        : 'Role o dado do posto: abastece o numero que cair. Cada rolagem custa R$ 1 mil.';
+        : `Role o dado do posto: abastece o numero que cair. Cada rolagem custa R$ ${player.moneyMultiplier} mil.`;
     el.btnRollFuel.disabled = tankFull;
     // Numero do dado do posto: aparece grande com animacao a cada rolagem nova e some depois de um tempo.
     // Ao abrir a tela so mostra se a rolagem for recente (nao ressuscita dado antigo).
