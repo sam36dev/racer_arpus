@@ -297,7 +297,7 @@ import { esc, brl, dashboardHTML, captureNeedles, animateNeedles, createPanelSli
             ` : ''}
             <input type="number" class="fine-amount" placeholder="Valor (mil)" value="1" min="0" step="any" inputmode="decimal" />
             <button class="danger full-width btn-apply-fine">Aplicar multa</button>
-            ${fines.length ? '<button class="secondary full-width btn-clear-fines">Quitar todas as multas</button>' : ''}
+            ${fines.length ? `<button class="secondary full-width btn-clear-fines">💸 Quitar multas (${brl(finesTotal)}${player.laps < 1 ? ' - nao paga na 1a volta' : ''})</button>` : ''}
 
             ${player.activeEffects.length ? `
               <div class="bar-label mt-24"><span>⚡ Efeitos ativos</span></div>
@@ -401,7 +401,12 @@ import { esc, brl, dashboardHTML, captureNeedles, animateNeedles, createPanelSli
     });
 
     const btnClearFines = div.querySelector('.btn-clear-fines');
-    if (btnClearFines) busyClick(btnClearFines, () => api(player.id, 'clear-fines').catch(() => {}));
+    if (btnClearFines) {
+      busyClick(btnClearFines, () => {
+        if (!confirm(`${player.name} paga ${brl(finesTotal)} de multas pro banco?`)) return Promise.resolve();
+        return api(player.id, 'clear-fines').catch((err) => alert(err.message));
+      });
+    }
 
     div.querySelectorAll('.btn-remove-fine').forEach((btn) => {
       busyClick(btn, () => apiPath(`/fines/${btn.dataset.fineId}/remove`).catch(() => {}));

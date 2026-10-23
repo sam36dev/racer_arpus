@@ -719,7 +719,7 @@ async function applyFine(gameId, playerId, amount, reason) {
   });
 
   // Contador por corrida no proprio jogador (pro trofeu Pe de Chumbo). Nao da pra contar pela
-  // colecao fines, porque o mestre apaga as multas quando o piloto paga na mesa (clearFines).
+  // colecao fines, porque as multas somem quando o piloto quita (clearFines).
   await playerRef(gameId, playerId).update({ finesInRace: FieldValue.increment(1) });
 
   if (player.userId) {
@@ -735,12 +735,25 @@ async function listFines(gameId) {
 }
 
 // Mestre quita (zera) todas as multas de um jogador de uma vez, depois que ele paga na mesa.
+// Quitar multas: o piloto caiu na casa de pagar multa - soma todas as multas dele, desconta o
+// total do saldo pro banco e zera as multas. As multas se acumulam ate la (pode ter varias).
+// Na primeira volta nao paga (ninguem perde dinheiro na volta 1): recusa e as multas ficam.
 async function clearFines(gameId, playerId) {
-  await getPlayer(gameId, playerId); // valida que o jogador existe
-  const snap = await finesCol(gameId).where('playerId', '==', playerId).get();
-  const batch = db.batch();
-  snap.docs.forEach((doc) => batch.delete(doc.ref));
-  await batch.commit();
+  const ref = playerRef(gameId, playerId);
+  await db.runTransaction(async (t) => {
+    const [snap, finesSnap] = await Promise.all([t.get(ref), t.get(finesCol(gameId).where('playerId', '==', playerId))]);
+    if (!snap.exists) throw new GameError('PLAYER_NOT_FOUND', 'Jogador nao encontrado');
+    if (finesSnap.docs.length === 0) return;
+    const player = snap.data();
+    if (isFirstLap(player)) {
+      throw new GameError('FIRST_LAP', 'Na primeira volta nao paga multa - as multas ficam acumuladas');
+    }
+    const total = finesSnap.docs.reduce((sum, doc) => sum + Number(doc.data().amount || 0), 0);
+    const updates = {};
+    chargeToBank(t, gameId, snap.id, player, updates, total, `Multas (${finesSnap.docs.length})`);
+    if (Object.keys(updates).length) t.update(ref, updates);
+    finesSnap.docs.forEach((doc) => t.delete(doc.ref));
+  });
   return listFines(gameId);
 }
 
