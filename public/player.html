@@ -18,11 +18,13 @@
   <button id="btn-roll" class="dice-btn">🎲 Rolar dado</button>
   <div id="roll-error" class="danger-banner" style="display:none;"></div>
 
+  <!-- Numero que caiu no dado do posto - fica fora do card porque o card some quando o tanque enche -->
+  <div id="fuel-dice-result" class="fuel-dice" style="display:none;"></div>
+
   <!-- POSTO: so aparece enquanto o mestre deixar o posto liberado (fecha sozinho com o tanque cheio) -->
   <div id="fuel-station-card" class="card" style="display:none;">
     <div class="stat-row"><span class="stat-icon">⛽</span><h3>Posto liberado</h3></div>
     <p class="small">Role o dado do posto: abastece o numero que cair. Cada rolagem custa R$ 1 mil.</p>
-    <p class="small" id="fuel-roll-result" style="display:none;"></p>
     <button class="full-width" id="btn-roll-fuel">🎲 Rolar dado do posto</button>
     <div id="fuel-error" class="danger-banner" style="display:none;"></div>
   </div>

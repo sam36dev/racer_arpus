@@ -28,7 +28,7 @@ games/{gameId}          name, status (lobby|finished), totalLaps, raceType (padr
   players/{playerId}    name, color, userId, diceType, turboPosition,
                         fuelCurrent, tireBrand, tireLevel, tireRollsUsed,
                         eliminated, laps, money, finesInRace, reachedD2, refuelsInRace, lastRoll { value, diceType, at },
-                        fuelStationOpen, lastFuelRoll { value, at },
+                        fuelStationOpen, lastFuelRoll { value, added, at },
                         lastCard { cardId, name, icon, description, at },
                         + campos de efeitos continuos das cartas da sorte, so presentes
                         quando ativos: tireWearMultiplier, diceLock, tanqueFuradoActive,

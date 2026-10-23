@@ -344,7 +344,7 @@ async function rollFuelStation(gameId, playerId) {
     const updates = {
       fuelCurrent: newFuel,
       refuelsInRace: refuels,
-      lastFuelRoll: { value, at: Date.now() },
+      lastFuelRoll: { value, added, at: Date.now() },
     };
     if (newFuel >= FUEL_MAX) updates.fuelStationOpen = false;
     chargeToBank(t, gameId, snap.id, player, updates, REFUEL_COST, 'Abastecer (dado do posto)');

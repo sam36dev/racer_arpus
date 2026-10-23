@@ -58,7 +58,7 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
     rollError: document.getElementById('roll-error'),
 
     fuelStationCard: document.getElementById('fuel-station-card'),
-    fuelRollResult: document.getElementById('fuel-roll-result'),
+    fuelDiceResult: document.getElementById('fuel-dice-result'),
     btnRollFuel: document.getElementById('btn-roll-fuel'),
     fuelError: document.getElementById('fuel-error'),
 
@@ -95,7 +95,16 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
   let latestPlayersRaw = [];
   let latestTransactions = [];
   const seenRollAt = {}; // playerId -> timestamp da ultima rolagem ja animada
+  let seenFuelRollAt; // timestamp do ultimo dado do posto ja mostrado
+  let fuelDiceTimer = null;
   const panels = createPanelSlider(el.slider, el.panelTabs);
+
+  const FUEL_DICE_SHOW_MS = 15000;
+  function fuelDiceHTML(fuelRoll) {
+    const added = fuelRoll.added != null ? fuelRoll.added : fuelRoll.value;
+    const note = added < fuelRoll.value ? ` (tanque encheu, entrou ${added})` : '';
+    return `<div class="fuel-dice-value">${fuelRoll.value}</div><div class="small">⛽ dado do posto: +${added} de combustivel${note}</div>`;
+  }
 
   function finesTotalOf(id) {
     return latestFines.filter((f) => f.playerId === id).reduce((sum, f) => sum + f.amount, 0);
@@ -148,9 +157,21 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
 
     // Posto: card so enquanto o mestre deixar liberado
     el.fuelStationCard.style.display = player.fuelStationOpen ? 'block' : 'none';
-    if (player.lastFuelRoll) {
-      el.fuelRollResult.style.display = 'block';
-      el.fuelRollResult.textContent = `Ultimo dado do posto: ${player.lastFuelRoll.value} (abasteceu ${player.lastFuelRoll.value}).`;
+    // Numero do dado do posto: aparece grande com animacao a cada rolagem nova e some depois de um tempo.
+    // Ao abrir a tela so mostra se a rolagem for recente (nao ressuscita dado antigo).
+    const fuelRoll = player.lastFuelRoll;
+    if (fuelRoll && seenFuelRollAt !== fuelRoll.at) {
+      const isFirstLoad = seenFuelRollAt === undefined;
+      seenFuelRollAt = fuelRoll.at;
+      if (!isFirstLoad || Date.now() - fuelRoll.at < FUEL_DICE_SHOW_MS) {
+        el.fuelDiceResult.innerHTML = fuelDiceHTML(fuelRoll);
+        el.fuelDiceResult.style.display = 'block';
+        popAnimate(el.fuelDiceResult);
+        clearTimeout(fuelDiceTimer);
+        fuelDiceTimer = setTimeout(() => { el.fuelDiceResult.style.display = 'none'; }, FUEL_DICE_SHOW_MS);
+      }
+    } else if (!fuelRoll) {
+      seenFuelRollAt = seenFuelRollAt || null;
     }
 
     // Bloqueios de rolagem

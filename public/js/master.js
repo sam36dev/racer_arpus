@@ -77,6 +77,7 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
   let latestTransactions = [];
   let luckCatalog = []; // catalogo de cartas da sorte, carregado uma vez da API
   const seenRollAt = {}; // playerId -> timestamp da ultima rolagem ja renderizada
+  const seenFuelRollAt = {}; // playerId -> timestamp do ultimo dado do posto ja renderizado
 
   fetch('/api/luck-cards/catalog')
     .then((res) => res.json())
@@ -235,7 +236,11 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
                    <button class="danger btn-fuel-station" data-open="">🔒 Bloquear posto</button>`
                 : '<button class="secondary btn-fuel-station" data-open="1">⛽ Liberar posto</button>'}
             </div>
-            ${player.lastFuelRoll ? `<p class="small">Ultimo dado do posto: <strong>${player.lastFuelRoll.value}</strong></p>` : ''}
+            ${player.lastFuelRoll ? `
+              <div class="fuel-dice">
+                <div class="fuel-dice-value">${player.lastFuelRoll.value}</div>
+                <div class="small">⛽ ultimo dado do posto: +${player.lastFuelRoll.added != null ? player.lastFuelRoll.added : player.lastFuelRoll.value} de combustivel</div>
+              </div>` : ''}
 
             <div class="bar-label mt-24"><span>🛞 Pneu</span></div>
             <div class="btn-row">
@@ -325,6 +330,15 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
         seenRollAt[player.id] = player.lastRoll.at;
         if (wasSeenBefore) popAnimate(resultEl);
       }
+    }
+
+    // Dado do posto: anima so quando chega rolagem nova (nao a cada re-render do slide)
+    if (player.lastFuelRoll && seenFuelRollAt[player.id] !== player.lastFuelRoll.at) {
+      const wasSeenBefore = seenFuelRollAt[player.id] !== undefined;
+      seenFuelRollAt[player.id] = player.lastFuelRoll.at;
+      if (wasSeenBefore) popAnimate(div.querySelector('.fuel-dice'));
+    } else if (!player.lastFuelRoll && seenFuelRollAt[player.id] === undefined) {
+      seenFuelRollAt[player.id] = null;
     }
 
     busyClick(div.querySelector('.btn-roll'), async () => {

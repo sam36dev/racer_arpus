@@ -231,6 +231,18 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   box-shadow: 0 0 0 1px var(--green) inset;
 }
 
+/* Numero que caiu no dado do posto (tela do piloto e painel do mestre) */
+.fuel-dice {
+  text-align: center;
+  margin: 10px 0;
+}
+
+.fuel-dice-value {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--green);
+}
+
 .dice-result-mini {
   text-align: center;
   font-size: 2.2rem;
