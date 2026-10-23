@@ -262,10 +262,7 @@ import { esc, brl, dashboardHTML, captureNeedles, animateNeedles, createPanelSli
             </div>
 
             <div class="bar-label mt-24"><span>💰 Dinheiro</span><span class="bar-value">${brl(player.money)}</span></div>
-            <div class="btn-row">
-              <input type="number" class="money-amount" placeholder="Valor (mil)" min="0" step="any" inputmode="decimal" style="flex:1" />
-              <input type="text" class="money-reason" placeholder="Motivo (opcional)" style="flex:2" />
-            </div>
+            <input type="number" class="money-amount" placeholder="Valor (mil)" min="0" step="any" inputmode="decimal" />
             <button class="secondary full-width btn-bank-pay">🏦 Banco paga</button>
             <div class="btn-row">
               <select class="money-to">
@@ -282,16 +279,13 @@ import { esc, brl, dashboardHTML, captureNeedles, animateNeedles, createPanelSli
               <div class="fines-list">
                 ${fines.map((f) => `
                   <div class="fine-row" data-fine-id="${f.id}">
-                    <span>R$ ${f.amount.toLocaleString('pt-BR')} — ${esc(f.reason || 'sem motivo')}</span>
+                    <span>R$ ${f.amount.toLocaleString('pt-BR')}${f.reason ? ` — ${esc(f.reason)}` : ''}</span>
                     <button class="secondary btn-remove-fine" data-fine-id="${f.id}" title="Remover essa multa">✕</button>
                   </div>
                 `).join('')}
               </div>
             ` : ''}
-            <div class="btn-row">
-              <input type="number" class="fine-amount" placeholder="Valor (R$)" value="1000" style="flex:1" />
-              <input type="text" class="fine-reason" placeholder="Motivo" style="flex:2" />
-            </div>
+            <input type="number" class="fine-amount" placeholder="Valor (R$)" value="1000" />
             <button class="danger full-width btn-apply-fine">Aplicar multa</button>
             ${fines.length ? '<button class="secondary full-width btn-clear-fines">Quitar todas as multas</button>' : ''}
 
@@ -364,11 +358,8 @@ import { esc, brl, dashboardHTML, captureNeedles, animateNeedles, createPanelSli
     busyClick(div.querySelector('.btn-damage-tire'), () => api(player.id, 'damage-tire').catch(() => {}));
     busyClick(div.querySelector('.btn-apply-fine'), () => {
       const amount = div.querySelector('.fine-amount').value;
-      const reason = div.querySelector('.fine-reason').value;
       if (!amount || Number(amount) <= 0) return Promise.resolve();
-      const p = api(player.id, 'fine', { amount, reason }).catch(() => {});
-      div.querySelector('.fine-reason').value = '';
-      return p;
+      return api(player.id, 'fine', { amount }).catch(() => {});
     });
 
     // Dinheiro: o mestre libera dinheiro do banco e tambem pode transferir por qualquer piloto
@@ -382,23 +373,20 @@ import { esc, brl, dashboardHTML, captureNeedles, animateNeedles, createPanelSli
         moneyErrorEl.textContent = err.message;
       }
     };
-    const moneyInputs = () => ({
-      // Valor digitado em milhares: 6 = R$ 6 mil
-      amount: Math.round(Number(div.querySelector('.money-amount').value) * 1000),
-      reason: div.querySelector('.money-reason').value.trim(),
-    });
+    // Valor digitado em milhares: 6 = R$ 6 mil
+    const moneyAmount = () => Math.round(Number(div.querySelector('.money-amount').value) * 1000);
     busyClick(div.querySelector('.btn-bank-pay'), () => {
-      const { amount, reason } = moneyInputs();
+      const amount = moneyAmount();
       if (!amount) return Promise.resolve();
       if (!confirm(`Banco paga ${brl(amount)} para ${player.name}?`)) return Promise.resolve();
-      return moneyAction('bank-pay', { amount, reason });
+      return moneyAction('bank-pay', { amount });
     });
     busyClick(div.querySelector('.btn-transfer-money'), () => {
-      const { amount, reason } = moneyInputs();
+      const amount = moneyAmount();
       const select = div.querySelector('.money-to');
       if (!amount || !select.value) return Promise.resolve();
       if (!confirm(`${player.name} transfere ${brl(amount)} para ${select.selectedOptions[0].textContent}?`)) return Promise.resolve();
-      return moneyAction('transfer-money', { to: select.value, amount, reason });
+      return moneyAction('transfer-money', { to: select.value, amount });
     });
 
     const btnClearFines = div.querySelector('.btn-clear-fines');

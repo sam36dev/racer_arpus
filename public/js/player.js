@@ -76,7 +76,6 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
 
     moneyTo: document.getElementById('money-to'),
     moneyAmount: document.getElementById('money-amount'),
-    moneyReason: document.getElementById('money-reason'),
     btnTransferMoney: document.getElementById('btn-transfer-money'),
     moneyError: document.getElementById('money-error'),
     txList: document.getElementById('tx-list'),
@@ -132,7 +131,7 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
 
     const playerFines = latestFines.filter((f) => f.playerId === playerId);
     el.finesList.innerHTML = playerFines
-      .map((f) => `<div>R$ ${f.amount.toLocaleString('pt-BR')} — ${esc(f.reason || 'sem motivo')}</div>`)
+      .map((f) => `<div>R$ ${f.amount.toLocaleString('pt-BR')}${f.reason ? ` — ${esc(f.reason)}` : ''}</div>`)
       .join('') || '<div>Nenhuma multa aplicada.</div>';
 
     // Transmissao Sequencial: acompanhamento do oponente observado + aviso "troque de lugar"
@@ -253,9 +252,8 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
     const toName = el.moneyTo.selectedOptions[0].textContent;
     if (!confirm(`Transferir ${brl(amount)} para ${toName}?`)) return;
     try {
-      await api('transfer-money', { to, amount, reason: el.moneyReason.value.trim() });
+      await api('transfer-money', { to, amount });
       el.moneyAmount.value = '';
-      el.moneyReason.value = '';
     } catch (err) {
       el.moneyError.style.display = 'block';
       el.moneyError.textContent = err.message;
