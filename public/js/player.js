@@ -156,12 +156,14 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
       el.swapPopup.style.display = 'none';
     }
 
-    // Posto: card so enquanto o mestre deixar liberado
-    el.fuelStationCard.style.display = player.fuelStationOpen ? 'block' : 'none';
-    el.fuelStationTitle.textContent = player.fuelStationFree ? 'Posto liberado (de graca!)' : 'Posto liberado';
-    el.fuelStationText.textContent = player.fuelStationFree
-      ? 'Role o dado do posto: abastece o numero que cair, sem pagar, ate o tanque encher.'
+    // Posto: card enquanto o mestre deixar liberado ou enquanto tiver a carta Gasolina de Graca
+    const tankFull = player.fuel.current >= player.fuel.max;
+    el.fuelStationCard.style.display = player.fuelStationOpen || player.freeFuel ? 'block' : 'none';
+    el.fuelStationTitle.textContent = player.freeFuel ? 'Gasolina de graca!' : 'Posto liberado';
+    el.fuelStationText.textContent = player.freeFuel
+      ? 'Role o dado do posto quantas vezes quiser, sem pagar, enquanto a carta estiver ativa.' + (tankFull ? ' Tanque cheio agora.' : '')
       : 'Role o dado do posto: abastece o numero que cair. Cada rolagem custa R$ 1 mil.';
+    el.btnRollFuel.disabled = tankFull;
     // Numero do dado do posto: aparece grande com animacao a cada rolagem nova e some depois de um tempo.
     // Ao abrir a tela so mostra se a rolagem for recente (nao ressuscita dado antigo).
     const fuelRoll = player.lastFuelRoll;

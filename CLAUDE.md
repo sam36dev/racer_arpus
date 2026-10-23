@@ -28,7 +28,7 @@ games/{gameId}          name, status (lobby|finished), totalLaps, raceType (padr
   players/{playerId}    name, color, userId, diceType, turboPosition,
                         fuelCurrent, tireBrand, tireLevel, tireRollsUsed,
                         eliminated, laps, money, finesInRace, reachedD2, refuelsInRace, lastRoll { value, diceType, at },
-                        fuelStationOpen, fuelStationFree, lastFuelRoll { value, added, at }, lapsPaid,
+                        fuelStationOpen, lastFuelRoll { value, added, at }, lapsPaid,
                         lastCard { cardId, name, icon, description, at },
                         + campos de efeitos continuos das cartas da sorte, so presentes
                         quando ativos: tireWearMultiplier, diceLock, tanqueFuradoActive,
@@ -72,7 +72,6 @@ O baralho é físico — o mestre tira a carta na mesa e ativa o efeito pelo pai
 - `fuel` / `tire` / `turbo` / `laps`: soma `effect.value` (pode ser negativo) reaproveitando `refuel`/`repairTire`+`damageTire`/`upgradeTurbo`/`completeLap` — essas funções aceitam um delta opcional (default 1) só por causa disso; as rotas HTTP normais continuam chamando sem delta. `refuel` hoje só é chamado por carta (de graça) — não existe mais rota de abastecer +1.
 - `tireBrand`: troca a marca de graça (`effect.value` = nome da marca).
 - `fine`: aplica multa automática de `effect.value`, usando o nome da carta como motivo.
-- `freeFuelStation` (Gasolina de Graça): libera o dado do posto com `fuelStationFree: true` — as rolagens não cobram; ao fechar (tanque cheio ou mestre bloqueia) a gratuidade acaba. Tanque já cheio recusa a carta. Não é `ACTIVE_EFFECTS`: aparece no próprio bloco do posto.
 - `none`: só anuncia a carta (fica registrada e aparece pro jogador), sem mexer em stat nenhum — pra efeito resolvido na mesa.
 - `statusOn`: liga um **efeito contínuo** (ver abaixo).
 - `watchOpponent`: liga o efeito contínuo `watching`, mas precisa de um **alvo** escolhido na hora (outro jogador) — ver abaixo.
@@ -90,11 +89,12 @@ Campos hoje:
 - `diceLock` (Kit Gás): trava o dado efetivo nesse valor, sobrepondo até o pneu — ver `effectiveDice()`. Transferível (`transferEffect()`) pra simular "cair na mesma casa e passar a zica".
 - `tanqueFuradoActive` (Tanque Furado): tirou exatamente 6 no dado → desconta +1 litro extra, checado em `rollDice()`.
 - `d12TempActive` (D12 Temporário): trava o dado em d12 (mesmo mecanismo do `diceLock`, mas campo separado — motivo diferente de terminar) e cobra combustível fixo (1/rolagem) em vez da fórmula normal. **Auto-desliga sozinho** quando o valor rolado é 12; `turboPosition`/`diceType` nunca são tocados, então o jogador simplesmente volta a rolar com o dado real do turbo dele (sem perder progresso).
+- `freeFuelActive` (Gasolina de Graça): enquanto ligado, o dado do posto fica sempre disponível pro piloto e não cobra, quantas vezes ele quiser (tanque cheio só desabilita o botão) — até o mestre remover ou reiniciar as cartas. Checado em `rollFuelStation()`.
 - `watching` (Transmissão Sequencial): `{ targetPlayerId, targetName, targetDiceType, seenValues[], triggered }`. Toda vez que QUALQUER jogador rola (`rollDice()` → `updateWatchers()`), varre quem está observando esse roller (`where('watching.targetPlayerId', '==', ...)`), acumula números distintos vistos, reinicia se o dado do alvo mudou, e liga `triggered` quando todos os números do dado atual já saíram. O front do observador mostra um popup "troque de lugar"; fechar o popup chama `clear-effect` (mesmo endpoint que o mestre usa) e desliga o efeito — não existe endpoint dedicado pra isso de propósito.
   Além da rolagem, `syncWatchersDiceType(gameId, targetPlayerId)` recalcula o dado efetivo do alvo e reinicia a contagem sempre que ele muda por qualquer OUTRO motivo (pneu reparado/penalizado, marca trocada, turbo subiu/desceu, Kit Gás ou D12 Temporário ligado/desligado/transferido) — chamado no fim de `repairTire`, `damageTire`, `changeTireBrand`, `upgradeTurbo`, `clearEffect`, `transferEffect` e do case `statusOn` em `activateCard`. Sem isso, o observador ficava com o dado antigo até o alvo rolar de novo por conta própria.
   ⚠️ Na UI do mestre, "Jogador" no painel de Cartas da Sorte é quem **recebe a carta** (vira o observador) e "Oponente" é quem **é observado** — o rótulo do campo "Jogador" muda dinamicamente pra deixar isso claro quando essa carta é selecionada. O painel sempre reseta pra placeholder vazio depois de ativar, pra nunca aplicar em alguém por engano com seleção "grudada" da ativação anterior.
 
-Desligar manualmente é sempre `POST .../clear-effect { field }` (volta ao default). O botão "♻️ Reiniciar cartas" do mestre (`POST /api/games/{id}/reset-luck-cards`, `resetLuckCards()`) desliga todos os efeitos de todos os pilotos de uma vez e fecha o posto de quem estava com Gasolina de Graça — o histórico (`luckCards`) fica. Transferir é `POST .../transfer-effect { toPlayerId, field }` — só funciona se `transferable: true` no registro.
+Desligar manualmente é sempre `POST .../clear-effect { field }` (volta ao default). O botão "♻️ Reiniciar cartas" do mestre (`POST /api/games/{id}/reset-luck-cards`, `resetLuckCards()`) desliga todos os efeitos de todos os pilotos de uma vez (Gasolina de Graça inclusive) — o histórico (`luckCards`) fica. Transferir é `POST .../transfer-effect { toPlayerId, field }` — só funciona se `transferable: true` no registro.
 
 Cartas novas o usuário manda aos poucos (nome + efeito); adiciona em `CATALOG` só depois que ele mandar. O motor de efeitos (instantâneos e contínuos) já está pronto pra maioria dos casos; efeito novo que não se encaixe nos tipos acima precisa de um campo novo em `ACTIVE_EFFECTS` + lógica dedicada em `rollDice()` (como os últimos quatro acima).
 

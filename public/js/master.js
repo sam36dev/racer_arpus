@@ -238,11 +238,11 @@ import { esc, brl, dashboardHTML, captureNeedles, animateNeedles, createPanelSli
               <button class="secondary btn-lap">🏁 Completou a volta</button>
             </div>
 
-            <div class="bar-label mt-24"><span>⛽ Posto</span><span class="bar-value">${player.fuelStationOpen ? (player.fuelStationFree ? 'liberado (gratis)' : 'liberado') : 'bloqueado'}</span></div>
+            <div class="bar-label mt-24"><span>⛽ Posto</span><span class="bar-value">${player.freeFuel ? 'gratis (carta)' : player.fuelStationOpen ? 'liberado' : 'bloqueado'}</span></div>
             <div class="btn-row">
-              ${player.fuelStationOpen
-                ? `<button class="secondary btn-roll-fuel">🎲 Dado do posto (${player.fuelStationFree ? 'gratis' : 'R$ 1 mil'})</button>
-                   <button class="danger btn-fuel-station" data-open="">🔒 Bloquear posto</button>`
+              ${player.fuelStationOpen || player.freeFuel ? `<button class="secondary btn-roll-fuel" ${player.fuel.current >= player.fuel.max ? 'disabled' : ''}>🎲 Dado do posto (${player.freeFuel ? 'gratis' : 'R$ 1 mil'})</button>` : ''}
+              ${player.freeFuel ? ''
+                : player.fuelStationOpen ? '<button class="danger btn-fuel-station" data-open="">🔒 Bloquear posto</button>'
                 : '<button class="secondary btn-fuel-station" data-open="1">⛽ Liberar posto</button>'}
             </div>
             ${player.lastFuelRoll ? `
@@ -357,7 +357,7 @@ import { esc, brl, dashboardHTML, captureNeedles, animateNeedles, createPanelSli
 
     // Dado do posto e reparo custam dinheiro - sem saldo o servidor recusa e o mestre precisa ver o motivo
     const stationBtn = div.querySelector('.btn-fuel-station');
-    busyClick(stationBtn, () => api(player.id, 'fuel-station', { open: !!stationBtn.dataset.open }).catch((err) => alert(err.message)));
+    if (stationBtn) busyClick(stationBtn, () => api(player.id, 'fuel-station', { open: !!stationBtn.dataset.open }).catch((err) => alert(err.message)));
     const rollFuelBtn = div.querySelector('.btn-roll-fuel');
     if (rollFuelBtn) busyClick(rollFuelBtn, () => api(player.id, 'roll-fuel').catch((err) => alert(err.message)));
     busyClick(div.querySelector('.btn-change-tire'), () => {

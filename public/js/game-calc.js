@@ -28,6 +28,7 @@ window.GameCalc = (function () {
       default: false,
       transferable: false,
     },
+    freeFuelActive: { label: () => 'Gasolina de graca (posto sem pagar)', default: false, transferable: false },
     watching: {
       label: (value) => `Observando ${value.targetName} (${(value.seenValues || []).length}/${value.targetDiceType})`,
       default: null,
@@ -128,7 +129,7 @@ window.GameCalc = (function () {
       money: player.money || 0,
       lastRoll: player.lastRoll || null,
       fuelStationOpen: !!player.fuelStationOpen,
-      fuelStationFree: !!player.fuelStationFree,
+      freeFuel: !!player.freeFuelActive,
       lastFuelRoll: player.lastFuelRoll || null,
       lastCard: player.lastCard || null,
       watching: player.watching || null,
