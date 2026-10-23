@@ -7,7 +7,7 @@ import {
   orderBy,
   limit,
 } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
-import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedles, createPanelSlider } from './dashboard.js';
+import { esc, brl, dashboardHTML, captureNeedles, animateNeedles, createPanelSlider } from './dashboard.js';
 
 (function () {
   const params = new URLSearchParams(window.location.search);
@@ -74,7 +74,6 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
   let latestPlayersRaw = [];
   let latestFines = [];
   let latestLuckLog = [];
-  let latestTransactions = [];
   let luckCatalog = []; // catalogo de cartas da sorte, carregado uma vez da API
   const seenRollAt = {}; // playerId -> timestamp da ultima rolagem ja renderizada
   const seenFuelRollAt = {}; // playerId -> timestamp do ultimo dado do posto ja renderizado
@@ -536,11 +535,6 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
   onSnapshot(query(collection(db, 'games', gameId, 'luckCards'), orderBy('appliedAt', 'desc'), limit(20)), (snap) => {
     latestLuckLog = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     renderLuckLog();
-  });
-
-  onSnapshot(query(collection(db, 'games', gameId, 'transactions'), orderBy('createdAt', 'desc'), limit(30)), (snap) => {
-    latestTransactions = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    document.getElementById('tx-list').innerHTML = transactionsHTML(latestTransactions);
   });
 
   document.getElementById('btn-add-player').addEventListener('click', async () => {
