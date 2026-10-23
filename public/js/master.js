@@ -190,6 +190,16 @@ import { esc, brl, dashboardHTML, captureNeedles, animateNeedles, createPanelSli
     }
   });
 
+  // Reiniciar cartas: desliga todos os efeitos de carta de todos os pilotos de uma vez
+  busyClick(document.getElementById('btn-reset-luck-cards'), async () => {
+    if (!confirm('Tirar TODAS as cartas da sorte ativas de TODOS os pilotos?')) return;
+    try {
+      await apiPath('/reset-luck-cards');
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
   function popAnimate(el) {
     el.classList.remove('dice-pop');
     void el.offsetWidth;
@@ -228,10 +238,10 @@ import { esc, brl, dashboardHTML, captureNeedles, animateNeedles, createPanelSli
               <button class="secondary btn-lap">🏁 Completou a volta</button>
             </div>
 
-            <div class="bar-label mt-24"><span>⛽ Posto</span><span class="bar-value">${player.fuelStationOpen ? 'liberado' : 'bloqueado'}</span></div>
+            <div class="bar-label mt-24"><span>⛽ Posto</span><span class="bar-value">${player.fuelStationOpen ? (player.fuelStationFree ? 'liberado (gratis)' : 'liberado') : 'bloqueado'}</span></div>
             <div class="btn-row">
               ${player.fuelStationOpen
-                ? `<button class="secondary btn-roll-fuel">🎲 Dado do posto (R$ 1 mil)</button>
+                ? `<button class="secondary btn-roll-fuel">🎲 Dado do posto (${player.fuelStationFree ? 'gratis' : 'R$ 1 mil'})</button>
                    <button class="danger btn-fuel-station" data-open="">🔒 Bloquear posto</button>`
                 : '<button class="secondary btn-fuel-station" data-open="1">⛽ Liberar posto</button>'}
             </div>

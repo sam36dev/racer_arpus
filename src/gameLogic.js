@@ -311,8 +311,9 @@ async function refuel(gameId, playerId, amount) {
 }
 
 // Posto: o mestre libera o dado do posto pra um piloto e ele fica liberado ate o mestre
-// bloquear ou o tanque encher (rollFuelStation fecha sozinho).
-async function setFuelStation(gameId, playerId, open) {
+// bloquear ou o tanque encher (rollFuelStation fecha sozinho). `free` so vem da carta
+// Gasolina de Graca: posto liberado sem cobrar nenhuma rolagem; fechou, acaba a gratuidade.
+async function setFuelStation(gameId, playerId, open, free = false) {
   const ref = playerRef(gameId, playerId);
   await db.runTransaction(async (t) => {
     const snap = await t.get(ref);
@@ -320,7 +321,7 @@ async function setFuelStation(gameId, playerId, open) {
     const player = snap.data();
     if (open && player.eliminated) throw new GameError('ELIMINATED', 'Piloto eliminado nao abastece');
     if (open && player.fuelCurrent >= FUEL_MAX) throw new GameError('TANK_FULL', 'O tanque ja esta cheio');
-    t.update(ref, { fuelStationOpen: !!open });
+    t.update(ref, { fuelStationOpen: !!open, fuelStationFree: !!open && !!free });
   });
   return getPlayer(gameId, playerId);
 }
@@ -348,8 +349,13 @@ async function rollFuelStation(gameId, playerId) {
       refuelsInRace: refuels,
       lastFuelRoll: { value, added, at: Date.now() },
     };
-    if (newFuel >= FUEL_MAX) updates.fuelStationOpen = false;
-    chargeToBank(t, gameId, snap.id, player, updates, REFUEL_COST, 'Abastecer (dado do posto)');
+    if (newFuel >= FUEL_MAX) {
+      updates.fuelStationOpen = false;
+      updates.fuelStationFree = false;
+    }
+    if (!player.fuelStationFree) {
+      chargeToBank(t, gameId, snap.id, player, updates, REFUEL_COST, 'Abastecer (dado do posto)');
+    }
     t.update(ref, updates);
     return { value, userId: player.userId, refuelsInRace: refuels };
   });
@@ -796,6 +802,9 @@ async function activateCard(gameId, playerId, cardId, targetPlayerId) {
     case 'fine':
       await applyFine(gameId, playerId, effect.value, card.name);
       break;
+    case 'freeFuelStation':
+      await setFuelStation(gameId, playerId, true, true);
+      break;
     case 'watchOpponent': {
       if (!targetPlayerId) throw new GameError('MISSING_TARGET', 'Escolha o oponente pra observar');
       if (targetPlayerId === playerId) {
@@ -844,6 +853,28 @@ async function clearEffect(gameId, playerId, field) {
 // Mestre repassa um efeito continuo TRANSFERIVEL (ex: Kit Gas) de um jogador pro outro -
 // caso do tabuleiro em que os dois caem na mesma casa e a "zica" passa adiante.
 // Tira o efeito de quem tinha, liga no alvo com o mesmo valor, e anuncia a carta pro alvo.
+// Reiniciar cartas (botao do mestre): desliga todo efeito continuo de carta de TODOS os pilotos
+// e fecha o posto de quem estava com Gasolina de Graca. O historico (luckCards) fica - e historico.
+// Sem syncWatchersDiceType: o 'watching' de todo mundo tambem e desligado, nao sobra observador.
+async function resetLuckCards(gameId) {
+  await getGame(gameId);
+  const players = await listPlayers(gameId);
+  const defaults = Object.fromEntries(
+    luckCards.activeEffectFields().map((field) => [field, luckCards.getActiveEffect(field).default])
+  );
+  const batch = db.batch();
+  for (const p of players) {
+    const updates = { ...defaults };
+    if (p.fuelStationFree) {
+      updates.fuelStationOpen = false;
+      updates.fuelStationFree = false;
+    }
+    batch.update(playerRef(gameId, p.id), updates);
+  }
+  await batch.commit();
+  return { players: players.length };
+}
+
 async function transferEffect(gameId, fromPlayerId, toPlayerId, field) {
   const meta = luckCards.getActiveEffect(field);
   if (!meta) throw new GameError('INVALID_EFFECT', 'Efeito invalido');
@@ -935,6 +966,7 @@ function serializePlayer(player) {
     money: player.money || 0,
     lastRoll: player.lastRoll || null,
     fuelStationOpen: !!player.fuelStationOpen,
+    fuelStationFree: !!player.fuelStationFree,
     lastFuelRoll: player.lastFuelRoll || null,
     lastCard: player.lastCard || null,
     watching: player.watching || null,
@@ -992,6 +1024,7 @@ module.exports = {
   activateCard,
   clearEffect,
   transferEffect,
+  resetLuckCards,
   listLuckCardLog,
   serializePlayer,
   serializeGame,

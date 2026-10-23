@@ -10,6 +10,8 @@
 //   'turbo'        -> soma effect.value a posicao do turbo (negativo reduz o dado)
 //   'laps'         -> soma effect.value as voltas completas (pode fazer o jogador vencer a corrida)
 //   'fine'         -> aplica uma multa de effect.value, com o nome da carta como motivo
+//   'freeFuelStation' -> libera o dado do posto sem cobrar as rolagens, ate o tanque encher
+//                     ou o mestre bloquear (ver setFuelStation em gameLogic.js)
 //   'none'         -> so anuncia a carta pro jogador, sem mexer em nenhum stat
 //                     (usado quando o efeito e narrativo e o mestre resolve na mesa)
 //   'statusOn'     -> liga um efeito CONTINUO (effect.field / effect.value), que fica valendo
@@ -48,6 +50,13 @@ const CATALOG = [
     description: 'Mais 6 litros de gasolina.',
     icon: '⛽',
     effect: { type: 'fuel', value: 6 },
+  },
+  {
+    id: 'gasolina-de-graca',
+    name: 'Gasolina de Graca',
+    description: 'Posto de graca: role o dado do posto e abasteca o numero que cair, sem pagar, ate o tanque encher.',
+    icon: '🆓',
+    effect: { type: 'freeFuelStation' },
   },
   {
     id: 'tanque-furado',

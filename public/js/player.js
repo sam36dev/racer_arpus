@@ -58,6 +58,8 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
     rollError: document.getElementById('roll-error'),
 
     fuelStationCard: document.getElementById('fuel-station-card'),
+    fuelStationTitle: document.getElementById('fuel-station-title'),
+    fuelStationText: document.getElementById('fuel-station-text'),
     fuelDiceResult: document.getElementById('fuel-dice-result'),
     btnRollFuel: document.getElementById('btn-roll-fuel'),
     fuelError: document.getElementById('fuel-error'),
@@ -156,6 +158,10 @@ import { esc, brl, dashboardHTML, transactionsHTML, captureNeedles, animateNeedl
 
     // Posto: card so enquanto o mestre deixar liberado
     el.fuelStationCard.style.display = player.fuelStationOpen ? 'block' : 'none';
+    el.fuelStationTitle.textContent = player.fuelStationFree ? 'Posto liberado (de graca!)' : 'Posto liberado';
+    el.fuelStationText.textContent = player.fuelStationFree
+      ? 'Role o dado do posto: abastece o numero que cair, sem pagar, ate o tanque encher.'
+      : 'Role o dado do posto: abastece o numero que cair. Cada rolagem custa R$ 1 mil.';
     // Numero do dado do posto: aparece grande com animacao a cada rolagem nova e some depois de um tempo.
     // Ao abrir a tela so mostra se a rolagem for recente (nao ressuscita dado antigo).
     const fuelRoll = player.lastFuelRoll;

@@ -222,6 +222,12 @@ app.post(
 );
 
 app.post(
+  '/api/games/:gameId/reset-luck-cards',
+  requireHost,
+  wrap(async (req) => game.resetLuckCards(req.params.gameId))
+);
+
+app.post(
   '/api/games/:gameId/players/:playerId/transfer-effect',
   requireHost,
   wrap(async (req) => {
